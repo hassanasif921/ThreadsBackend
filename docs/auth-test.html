@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth Authentication Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 10px 0;
+            border-radius: 4px;
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .google-btn {
+            background-color: #4285F4;
+        }
+        .apple-btn {
+            background-color: #000;
+        }
+        pre {
+            background-color: #f1f1f1;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>OAuth Authentication Test</h1>
+        <p>Use the buttons below to test the OAuth authentication flows:</p>
+        
+        <a href="/api/auth/google" class="btn google-btn">Sign in with Google</a>
+        <br>
+        <a href="#" id="apple-signin" class="btn apple-btn">Sign in with Apple</a>
+        
+        <div id="result" style="margin-top: 20px;">
+            <h3>Authentication Result:</h3>
+            <pre id="token-display">No authentication performed yet.</pre>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>How to Test</h2>
+        <ol>
+            <li>Click on one of the authentication buttons above.</li>
+            <li>Complete the authentication flow with the provider.</li>
+            <li>You will be redirected back to this page with a token in the URL.</li>
+            <li>The token will be displayed below and stored in local storage.</li>
+        </ol>
+    </div>
+
+    <script>
+        // Check for token in URL after redirect
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            
+            if (token) {
+                document.getElementById('token-display').textContent = `JWT Token: ${token}`;
+                localStorage.setItem('auth_token', token);
+                
+                // Remove token from URL to prevent sharing
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            
+            // For Apple Sign In (requires a POST request)
+            document.getElementById('apple-signin').addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Create a form to submit POST request
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/api/auth/apple';
+                document.body.appendChild(form);
+                form.submit();
+            });
+        });
+    </script>
+</body>
+</html>

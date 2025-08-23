@@ -14,8 +14,12 @@ const userSchema = new mongoose.Schema({
   },
   phoneNumber: {
     type: String,
-    required: [true, 'Phone number is required'],
+    required: function() {
+      // Only required if not using social login
+      return !this.googleId && !this.appleId;
+    },
     unique: true,
+    sparse: true,
     trim: true
   },
   email: {
@@ -28,8 +32,26 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
+    required: function() {
+      // Only required if not using social login
+      return !this.googleId && !this.appleId;
+    },
     minlength: [6, 'Password must be at least 6 characters']
+  },
+  googleId: {
+    type: String,
+    sparse: true,
+    unique: true
+  },
+  appleId: {
+    type: String,
+    sparse: true,
+    unique: true
+  },
+  firebaseUid: {
+    type: String,
+    sparse: true,
+    unique: true
   },
   emailVerified: {
     type: Boolean,
@@ -40,6 +62,14 @@ const userSchema = new mongoose.Schema({
     default: null
   },
   otpExpiry: {
+    type: Date,
+    default: null
+  },
+  termsAccepted: {
+    type: Boolean,
+    default: false
+  },
+  termsAcceptedAt: {
     type: Date,
     default: null
   },

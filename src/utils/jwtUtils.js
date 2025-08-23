@@ -5,21 +5,33 @@ const jwt = require('jsonwebtoken');
  */
 const jwtUtils = {
   /**
-   * Generate a JWT token for a user
-   * @param {Object} user - User object containing id and other data
+   * Generate a JWT token for a user or custom payload
+   * @param {Object} user - User object containing id and other data, or custom payload
+   * @param {String} expiresIn - Optional custom expiration time (e.g., '15m', '1h', '7d')
    * @returns {String} JWT token
    */
-  generateToken: (user) => {
-    return jwt.sign(
-      { 
-        id: user._id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '30d' }
-    );
+  generateToken: (user, expiresIn = null) => {
+    // If user is a regular user object with _id
+    if (user._id) {
+      return jwt.sign(
+        { 
+          id: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: expiresIn || process.env.JWT_EXPIRES_IN || '30d' }
+      );
+    } 
+    // If user is a custom payload
+    else {
+      return jwt.sign(
+        user,
+        process.env.JWT_SECRET,
+        { expiresIn: expiresIn || process.env.JWT_EXPIRES_IN || '30d' }
+      );
+    }
   },
 
   /**

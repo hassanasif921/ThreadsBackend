@@ -15,7 +15,16 @@ const userController = {
    */
   register: async (req, res) => {
     try {
-      const { firstName, lastName, phoneNumber, email, password } = req.body;
+      const { firstName, lastName, phoneNumber, email, password, termsAccepted } = req.body;
+
+      // Check if terms and conditions are accepted
+      if (!termsAccepted) {
+        return res.status(400).json({
+          success: false,
+          message: 'Terms and conditions must be accepted',
+          requiresTerms: true
+        });
+      }
 
       // Check if user already exists by phone number or email
       const existingUser = await User.findOne({ $or: [{ phoneNumber }, { email }] });
@@ -38,7 +47,9 @@ const userController = {
         email,
         password,
         otp,
-        otpExpiry
+        otpExpiry,
+        termsAccepted: true,
+        termsAcceptedAt: new Date()
       });
 
       // Save user to database
@@ -151,7 +162,7 @@ const userController = {
    */
   login: async (req, res) => {
     try {
-      const { email, password } = req.body;
+      const { email, password, termsAccepted } = req.body;
 
       // Check if user exists
       const user = await User.findOne({ email });
@@ -179,6 +190,23 @@ const userController = {
           userId: user._id
         });
       }
+      
+      // Check if terms are accepted or being accepted now
+      if (!user.termsAccepted && !termsAccepted) {
+        return res.status(403).json({
+          success: false,
+          message: 'Terms and conditions must be accepted',
+          requiresTerms: true,
+          userId: user._id
+        });
+      }
+      
+      // Update terms acceptance if provided in this request
+      if (!user.termsAccepted && termsAccepted) {
+        user.termsAccepted = true;
+        user.termsAcceptedAt = new Date();
+        await user.save();
+      }
 
       // Generate JWT token
       const token = jwtUtils.generateToken(user);
@@ -192,7 +220,8 @@ const userController = {
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
-          phoneNumber: user.phoneNumber
+          phoneNumber: user.phoneNumber,
+          termsAccepted: user.termsAccepted
         }
       });
     } catch (error) {
@@ -226,6 +255,328 @@ const userController = {
       return res.status(500).json({
         success: false,
         message: 'Server error',
+        error: error.message
+      });
+    }
+  },
+  
+  /**
+   * Resend OTP verification code
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @returns {Object} - Response with OTP sending status
+   */
+  resendOTP: async (req, res) => {
+    try {
+      const { userId } = req.body;
+
+      // Find user
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+      
+      // Check if email is already verified
+      if (user.emailVerified) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email is already verified'
+        });
+      }
+      
+      // Generate new OTP
+      const otp = emailVerification.generateOTP();
+      const otpExpiry = emailVerification.calculateExpiryTime();
+      
+      // Update user with new OTP
+      user.otp = otp;
+      user.otpExpiry = otpExpiry;
+      await user.save();
+      
+      // Send OTP via email
+      try {
+        const emailResult = await emailVerification.sendOTP(user.email, user.firstName, otp);
+        
+        if (emailResult.success) {
+          return res.status(200).json({
+            success: true,
+            message: 'Verification code resent to your email'
+          });
+        } else {
+          // If email sending fails, set OTP to "0000"
+          user.otp = "0000";
+          await user.save();
+          
+          return res.status(200).json({
+            success: true,
+            message: 'Verification code resent'
+          });
+        }
+      } catch (error) {
+        console.error('Email sending error:', error);
+        
+        // If email sending throws an error, set OTP to "0000"
+        user.otp = "0000";
+        await user.save();
+        
+        return res.status(200).json({
+          success: true,
+          message: 'Verification code resent'
+        });
+      }
+    } catch (error) {
+      console.error('Resend OTP error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Server error during OTP resend',
+        error: error.message
+      });
+    }
+  },
+  
+  /**
+   * Accept terms and conditions
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @returns {Object} - Response with terms acceptance status
+   */
+  acceptTerms: async (req, res) => {
+    try {
+      const { userId } = req.body;
+
+      // Find user
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+      
+      // Check if terms are already accepted
+      if (user.termsAccepted) {
+        return res.status(200).json({
+          success: true,
+          message: 'Terms and conditions were already accepted',
+          termsAccepted: true,
+          termsAcceptedAt: user.termsAcceptedAt
+        });
+      }
+      
+      // Update terms acceptance status
+      user.termsAccepted = true;
+      user.termsAcceptedAt = new Date();
+      await user.save();
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Terms and conditions accepted successfully',
+        termsAccepted: true,
+        termsAcceptedAt: user.termsAcceptedAt
+      });
+    } catch (error) {
+      console.error('Accept terms error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Server error while accepting terms and conditions',
+        error: error.message
+      });
+    }
+  },
+  
+  /**
+   * Forgot password - send OTP to email
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @returns {Object} - Response with status of OTP sending
+   */
+  forgotPassword: async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      // Find user by email
+      const user = await User.findOne({ email });
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User with this email does not exist'
+        });
+      }
+      
+      // Generate OTP for password reset
+      const otp = emailVerification.generateOTP();
+      const otpExpiry = emailVerification.calculateExpiryTime();
+      
+      // Update user with new OTP
+      user.otp = otp;
+      user.otpExpiry = otpExpiry;
+      await user.save();
+      
+      // Send OTP via email
+      try {
+        const emailResult = await emailVerification.sendOTP(user.email, user.firstName, otp, 'Password Reset');
+        
+        if (emailResult.success) {
+          return res.status(200).json({
+            success: true,
+            message: 'Password reset code sent to your email',
+            userId: user._id
+          });
+        } else {
+          // If email sending fails, set OTP to "0000"
+          user.otp = "0000";
+          await user.save();
+          
+          return res.status(200).json({
+            success: true,
+            message: 'Password reset code sent',
+            userId: user._id
+          });
+        }
+      } catch (error) {
+        console.error('Email sending error:', error);
+        
+        // If email sending throws an error, set OTP to "0000"
+        user.otp = "0000";
+        await user.save();
+        
+        return res.status(200).json({
+          success: true,
+          message: 'Password reset code sent',
+          userId: user._id
+        });
+      }
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Server error during password reset request',
+        error: error.message
+      });
+    }
+  },
+  
+  /**
+   * Verify OTP and generate reset token
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @returns {Object} - Response with reset token
+   */
+  verifyResetOTP: async (req, res) => {
+    try {
+      const { userId, otp } = req.body;
+
+      // Find user
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+      
+      // Check if OTP is valid and not expired
+      if (user.otp !== otp) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid verification code'
+        });
+      }
+      
+      if (user.otpExpiry < new Date()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Verification code has expired'
+        });
+      }
+      
+      // Generate reset token (JWT with short expiry)
+      const resetToken = jwtUtils.generateToken(
+        { userId: user._id, purpose: 'password-reset' },
+        '15m' // Token valid for 15 minutes
+      );
+      
+      // Clear OTP after successful verification
+      user.otp = null;
+      user.otpExpiry = null;
+      await user.save();
+      
+      return res.status(200).json({
+        success: true,
+        message: 'OTP verified successfully',
+        resetToken
+      });
+    } catch (error) {
+      console.error('Verify reset OTP error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Server error during OTP verification',
+        error: error.message
+      });
+    }
+  },
+  
+  /**
+   * Reset password using token
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @returns {Object} - Response with reset status
+   */
+  resetPassword: async (req, res) => {
+    try {
+      const { resetToken, newPassword } = req.body;
+      
+      if (!resetToken || !newPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Reset token and new password are required'
+        });
+      }
+      
+      // Verify reset token
+      try {
+        const decoded = jwtUtils.verifyToken(resetToken);
+        
+        // Check if token is for password reset
+        if (decoded.purpose !== 'password-reset') {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid reset token'
+          });
+        }
+        
+        // Find user
+        const user = await User.findById(decoded.userId);
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            message: 'User not found'
+          });
+        }
+        
+        // Update password
+        user.password = newPassword;
+        await user.save();
+        
+        return res.status(200).json({
+          success: true,
+          message: 'Password reset successfully'
+        });
+      } catch (error) {
+        // Token verification failed
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid or expired reset token'
+        });
+      }
+    } catch (error) {
+      console.error('Reset password error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Server error during password reset',
         error: error.message
       });
     }

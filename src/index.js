@@ -18,6 +18,12 @@ app.use(express.urlencoded({ extended: false }));
 // Routes
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/firebase-auth', require('./routes/firebaseAuthRoutes'));
+app.use('/api/stitches', require('./routes/stitchRoutes'));
+app.use('/api/taxonomy', require('./routes/taxonomyRoutes'));
+app.use('/api/progress', require('./routes/userProgressRoutes'));
+
+// Static file serving for uploads
+app.use('/uploads', express.static('uploads'));
 
 // Root route
 app.get('/', (req, res) => {

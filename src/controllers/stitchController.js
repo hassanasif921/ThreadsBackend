@@ -162,6 +162,10 @@ exports.createStitch = async (req, res) => {
 
     // Process uploaded files
     if (req.files) {
+      if (req.files.featuredImage) {
+        const processedFiles = processUploadedFiles(req.files.featuredImage);
+        stitchData.featuredImage = processedFiles[0]; // Take first file as featured image
+      }
       if (req.files.images) {
         stitchData.images = processUploadedFiles(req.files.images);
       }
@@ -218,6 +222,10 @@ exports.updateStitch = async (req, res) => {
 
     // Process uploaded files
     if (req.files) {
+      if (req.files.featuredImage) {
+        const processedFiles = processUploadedFiles(req.files.featuredImage);
+        stitchData.featuredImage = processedFiles[0]; // Take first file as featured image
+      }
       if (req.files.images) {
         stitchData.images = processUploadedFiles(req.files.images);
       }

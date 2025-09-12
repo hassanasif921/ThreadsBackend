@@ -14,11 +14,13 @@ router.get('/:id/steps', authMiddleware, stepController.getStepsByStitch);
 
 // Protected stitch routes (require authentication)
 router.post('/', authMiddleware, upload.fields([
+  { name: 'featuredImage', maxCount: 1 },
   { name: 'images', maxCount: 10 },
   { name: 'videos', maxCount: 5 }
 ]), stitchController.createStitch);
 
 router.put('/:id', authMiddleware, upload.fields([
+  { name: 'featuredImage', maxCount: 1 },
   { name: 'images', maxCount: 10 },
   { name: 'videos', maxCount: 5 }
 ]), stitchController.updateStitch);

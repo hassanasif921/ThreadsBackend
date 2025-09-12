@@ -648,18 +648,40 @@ All error responses follow this format:
 ```javascript
 {
   "_id": "ObjectId",
-  "name": "String (required, unique)",
-  "description": "String (required)",
-  "designerNotes": "String",
-  "isPremium": "Boolean (default: false)",
+  "name": "String (required, max: 100 chars)",
+  "description": "String (max: 1000 chars)",
+  "referenceNumber": "String (unique, optional)",
+  "alternativeNames": ["String"],
+  "difficulty": "ObjectId (ref: Difficulty)",
+  "family": "ObjectId (ref: Family)",
+  "usages": ["ObjectId (ref: Usage)"],
+  "tags": ["ObjectId (ref: Tag)"],
+  "swatches": ["ObjectId (ref: Swatch)"],
+  "hexCodes": ["String (hex color codes)"],
+  "featuredImage": {
+    "filename": "String",
+    "originalName": "String", 
+    "path": "String (from uploads/thumbnails/)",
+    "size": "Number",
+    "uploadDate": "Date"
+  },
+  "images": [{
+    "filename": "String",
+    "originalName": "String", 
+    "path": "String (from uploads/images/)",
+    "size": "Number",
+    "uploadDate": "Date"
+  }],
+  "videos": [{
+    "filename": "String",
+    "originalName": "String",
+    "path": "String", 
+    "size": "Number",
+    "duration": "Number",
+    "uploadDate": "Date"
+  }],
+  "notes": "String (max: 2000 chars)",
   "isActive": "Boolean (default: true)",
-  "families": ["ObjectId"],
-  "usages": ["ObjectId"],
-  "difficulties": ["ObjectId"],
-  "tags": ["ObjectId"],
-  "swatches": ["ObjectId"],
-  "thumbnailImage": "String (file path)",
-  "featuredImage": "String (file path)",
   "createdAt": "Date",
   "updatedAt": "Date"
 }

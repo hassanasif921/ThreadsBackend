@@ -21,6 +21,7 @@ app.use('/api/firebase-auth', require('./routes/firebaseAuthRoutes'));
 app.use('/api/stitches', require('./routes/stitchRoutes'));
 app.use('/api/taxonomy', require('./routes/taxonomyRoutes'));
 app.use('/api/progress', require('./routes/userProgressRoutes'));
+app.use('/api/categories', require('./routes/categoryRoutes'));
 
 // Static file serving for uploads
 app.use('/uploads', express.static('uploads'));

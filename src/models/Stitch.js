@@ -49,6 +49,16 @@ const stitchSchema = new mongoose.Schema({
       message: 'Invalid hex color code format'
     }
   }],
+  featuredImage: {
+    filename: String,
+    originalName: String,
+    path: String,
+    size: Number,
+    uploadDate: {
+      type: Date,
+      default: Date.now
+    }
+  },
   images: [{
     filename: String,
     originalName: String,

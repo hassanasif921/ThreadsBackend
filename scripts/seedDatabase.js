@@ -103,6 +103,33 @@ const stitchData = [
       "Weave the needle up through the first stitch in the top row only.",
       "Repeat for the rest of the stitches."
     ]
+  },
+  {
+    referenceNumber: 1036,
+    name: "Whipped Chain Stitch",
+    description: "A chain stitch with a second thread whipped around each chain for added texture and dimension.",
+    tags: ["chain", "whipped", "decorative", "texture"],
+    difficulty: "Intermediate",
+    notes: "Creates a raised, rope-like effect. Use contrasting colors for visual impact.",
+    alternativeNames: ["Overcast Chain Stitch"],
+    steps: [
+      "Complete a row of chain stitches as your foundation.",
+      "Bring a second thread to the front at the beginning of the chain row and whip it around each chain link without piercing the fabric."
+    ]
+  },
+  {
+    referenceNumber: 1037,
+    name: "Double Whipped Chain Stitch",
+    description: "A chain stitch with two threads whipped around each chain in opposite directions for maximum texture.",
+    tags: ["chain", "whipped", "decorative", "texture", "double"],
+    difficulty: "Advanced",
+    notes: "Creates a very dimensional, braided appearance. Requires careful tension control.",
+    alternativeNames: ["Double Overcast Chain Stitch"],
+    steps: [
+      "Complete a row of chain stitches as your foundation.",
+      "Whip the first thread around each chain link in one direction.",
+      "Whip the second thread around each chain link in the opposite direction, creating a braided effect."
+    ]
   }
 ];
 
@@ -196,29 +223,118 @@ async function createTaxonomyItems() {
   return { createdFamilies, createdUsages, createdDifficulties, createdTags, createdSwatches };
 }
 
-// Check if image exists
-function getImagePath(referenceNumber, stepNumber = null) {
-  const uploadsDir = path.join(__dirname, '../uploads/images');
+// Get all images for a stitch from images folder
+function getAllStitchImages(referenceNumber) {
+  const imagesDir = 'uploads/images';
+  const images = [];
   
-  if (stepNumber) {
-    // Look for step images like 1036_whipchain_step1_draw.jpg
-    const stepImagePattern = `${referenceNumber}_*_step${stepNumber}_*.jpg`;
-    const files = fs.readdirSync(uploadsDir);
-    const matchingFile = files.find(file => {
-      const regex = new RegExp(`${referenceNumber}_.*_step${stepNumber}_.*\\.jpg`);
-      return regex.test(file);
+  try {
+    if (!fs.existsSync(imagesDir)) {
+      return images;
+    }
+    
+    const files = fs.readdirSync(imagesDir);
+    
+    // Find all images that start with the reference number
+    const matchingFiles = files.filter(file => {
+      return file.startsWith(referenceNumber) && 
+             (file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.png')) &&
+             !file.includes('_step'); // Exclude step images (both old and new naming)
     });
-    return matchingFile ? `uploads/images/${matchingFile}` : null;
-  } else {
-    // Look for main stitch image
-    const mainImagePattern = `${referenceNumber}_*.jpg`;
-    const files = fs.readdirSync(uploadsDir);
-    const matchingFile = files.find(file => {
-      const regex = new RegExp(`${referenceNumber}_.*\\.jpg`);
-      return regex.test(file) && !file.includes('step');
+    
+    files.forEach(file => {
+      const filePath = `uploads/images/${file}`;
+      const stats = fs.statSync(filePath);
+      images.push({
+        filename: file,
+        originalName: file,
+        path: filePath,
+        size: stats.size
+      });
     });
-    return matchingFile ? `uploads/images/${matchingFile}` : null;
+    
+  } catch (error) {
+    console.log(`Error reading images for ${referenceNumber}:`, error.message);
   }
+  
+  return images;
+}
+
+// Get thumbnail image from thumbnails folder
+function getThumbnailImage(referenceNumber) {
+  const thumbnailsDir = 'uploads/thumbnails';
+  
+  try {
+    if (!fs.existsSync(thumbnailsDir)) {
+      return null;
+    }
+    
+    const files = fs.readdirSync(thumbnailsDir);
+    
+    // Find thumbnail that starts with the reference number
+    const thumbnailFile = files.find(file => {
+      return file.startsWith(referenceNumber) && 
+             (file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.png'));
+    });
+    
+    if (thumbnailFile) {
+      const filePath = `uploads/thumbnails/${thumbnailFile}`;
+      const stats = fs.statSync(filePath);
+      return {
+        filename: thumbnailFile,
+        originalName: thumbnailFile,
+        path: filePath,
+        size: stats.size
+      };
+    }
+    
+  } catch (error) {
+    console.log(`Error reading thumbnail for ${referenceNumber}:`, error.message);
+  }
+  
+  return null;
+}
+
+// Check if step image exists
+function getStepImagePath(referenceNumber, stepNumber) {
+  const imagesDir = 'uploads/images';
+  
+  try {
+    if (!fs.existsSync(imagesDir)) {
+      return null;
+    }
+    
+    const files = fs.readdirSync(imagesDir);
+    
+    // Find step image - support both old and new naming conventions
+    const stepFile = files.find(file => {
+      return (
+        // Old naming: 1001_step1.jpg
+        (file.startsWith(`${referenceNumber}_step${stepNumber}`) && 
+         (file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.png'))) ||
+        // New naming: 1036_whipchain_step1_draw.jpg
+        (file.startsWith(referenceNumber) && 
+         file.includes(`_step${stepNumber}_`) &&
+         (file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.png')))
+      );
+    });
+    
+    if (stepFile) {
+      const filePath = `uploads/images/${stepFile}`;
+      const stats = fs.statSync(filePath);
+      return {
+        filename: stepFile,
+        originalName: stepFile,
+        path: filePath,
+        size: stats.size
+      };
+    }
+    
+  } catch (error) {
+    console.log(`Error reading step image for ${referenceNumber}_step${stepNumber}:`, error.message);
+  }
+  
+  return null;
 }
 
 // Create stitches and steps
@@ -274,8 +390,9 @@ async function createStitches(taxonomyItems) {
         usageIds.push(createdUsages["Decorative"]);
       }
 
-      // Check for main stitch image
-      const mainImage = getImagePath(stitchInfo.referenceNumber);
+      // Get all images and featured image for this stitch
+      const allImages = getAllStitchImages(stitchInfo.referenceNumber);
+      const featuredImage = getThumbnailImage(stitchInfo.referenceNumber);
 
       // Create stitch
       const stitchData = {
@@ -290,12 +407,8 @@ async function createStitches(taxonomyItems) {
         tags: tagIds,
         swatches: [], // Leave empty for now as requested
         hexCodes: [], // Leave empty for now as requested
-        images: mainImage ? [{
-          filename: mainImage.split('/').pop(),
-          originalName: mainImage.split('/').pop(),
-          path: mainImage,
-          size: 0
-        }] : []
+        featuredImage: featuredImage,
+        images: allImages
       };
 
       const createdStitch = await Stitch.create(stitchData);
@@ -305,18 +418,13 @@ async function createStitches(taxonomyItems) {
       if (stitchInfo.steps && stitchInfo.steps.length > 0) {
         for (let i = 0; i < stitchInfo.steps.length; i++) {
           const stepNumber = i + 1;
-          const stepImage = getImagePath(stitchInfo.referenceNumber, stepNumber);
+          const stepImage = getStepImagePath(stitchInfo.referenceNumber, stepNumber);
 
           const stepData = {
             stitch: createdStitch._id,
             stepNumber: stepNumber,
             instruction: stitchInfo.steps[i],
-            images: stepImage ? [{
-              filename: stepImage.split('/').pop(),
-              originalName: stepImage.split('/').pop(),
-              path: stepImage,
-              size: 0
-            }] : []
+            images: stepImage ? [stepImage] : []
           };
 
           await Step.create(stepData);

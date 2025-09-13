@@ -310,10 +310,14 @@ Add a new step to a stitch with optional media files.
 
 ### Get Steps for Stitch
 
-Retrieve all steps for a specific stitch.
+Get all steps for a specific stitch with optional user progress.
 
-- **URL**: `/stitches/{stitchId}/steps`
+- **URL**: `/stitches/{id}/steps`
 - **Method**: `GET`
+- **Auth**: Optional
+
+**Query Parameters:**
+- `userId` (string, optional): Include user's step progress and active step status
 
 **Success Response** (200):
 ```json
@@ -324,6 +328,38 @@ Retrieve all steps for a specific stitch.
       "_id": "step_id",
       "stepNumber": 1,
       "instruction": "Thread your needle...",
+      "images": [
+        {
+          "filename": "1036_whipchain_step1_draw.jpg",
+          "path": "uploads/images/1036_whipchain_step1_draw.jpg",
+          "size": 64583
+        }
+      ],
+      "videos": [
+        {
+          "filename": "demo_video.mp4",
+          "path": "uploads/videos/demo_video.mp4",
+          "size": 7643255
+        }
+      ],
+      "stepStatus": {
+        "isCompleted": false,
+        "isActive": true,
+        "isLocked": false
+      }
+    },
+    {
+      "_id": "step_id_2",
+      "stepNumber": 2,
+      "instruction": "Pull the thread through...",
+      "images": [],
+      "videos": [],
+      "stepStatus": {
+        "isCompleted": false,
+        "isActive": false,
+        "isLocked": true
+      }
+    }
       "illustration": "uploads/images/step1.jpg",
       "video": "uploads/videos/step1.mp4",
       "mediaMetadata": {
@@ -964,6 +1000,7 @@ Get featured stitches for the home page.
 **Query Parameters:**
 - `limit` (number): Maximum results (default: 6)
 - `category` (string): Filter by category/family ID (use "all" for all categories)
+- `userId` (string, optional): Include user progress data
 
 **Response:**
 ```javascript
@@ -993,7 +1030,15 @@ Get featured stitches for the home page.
           "type": "thread",
           "fiber": "cotton"
         }
-      ]
+      ],
+      "userProgress": {
+        "currentStep": 2,
+        "totalSteps": 4,
+        "isCompleted": false,
+        "isFavorite": true,
+        "lastPracticed": "2024-01-15T10:30:00Z",
+        "practiceCount": 5
+      }
     }
   ]
 }

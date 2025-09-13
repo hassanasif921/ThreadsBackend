@@ -1,4 +1,6 @@
 const Stitch = require('../models/Stitch');
+const Step = require('../models/Step');
+const UserProgress = require('../models/UserProgress');
 const { processUploadedFiles } = require('../utils/fileUtils');
 
 // Get all stitches with filtering and pagination
@@ -14,7 +16,8 @@ exports.getAllStitches = async (req, res) => {
       materials,
       search,
       sortBy = 'name',
-      sortOrder = 'asc'
+      sortOrder = 'asc',
+      userId
     } = req.query;
 
     const filter = { isActive: true };
@@ -57,9 +60,15 @@ exports.getAllStitches = async (req, res) => {
 
     const total = await Stitch.countDocuments(filter);
 
+    // If userId provided, add user progress data
+    let stitchesWithProgress = stitches;
+    if (userId) {
+      stitchesWithProgress = await addUserProgressToStitches(stitches, userId);
+    }
+
     res.json({
       success: true,
-      data: stitches,
+      data: stitchesWithProgress,
       pagination: {
         currentPage: parseInt(page),
         totalPages: Math.ceil(total / limit),
@@ -79,7 +88,7 @@ exports.getAllStitches = async (req, res) => {
 // Search stitches
 exports.searchStitches = async (req, res) => {
   try {
-    const { q, materials, limit = 10 } = req.query;
+    const { q, materials, limit = 10, userId } = req.query;
 
     if (!q) {
       return res.status(400).json({
@@ -110,9 +119,15 @@ exports.searchStitches = async (req, res) => {
       .select('name description referenceNumber images materials')
       .limit(parseInt(limit));
 
+    // If userId provided, add user progress data
+    let stitchesWithProgress = stitches;
+    if (userId) {
+      stitchesWithProgress = await addUserProgressToStitches(stitches, userId);
+    }
+
     res.json({
       success: true,
-      data: stitches
+      data: stitchesWithProgress
     });
   } catch (error) {
     res.status(500).json({
@@ -309,3 +324,39 @@ exports.deleteStitch = async (req, res) => {
     });
   }
 };
+
+// Helper function to add user progress to stitches array
+async function addUserProgressToStitches(stitches, userId) {
+  const stitchesWithProgress = [];
+  
+  for (const stitch of stitches) {
+    const stitchObj = stitch.toObject();
+    
+    // Get total steps for this stitch
+    const totalSteps = await Step.countDocuments({ 
+      stitch: stitch._id, 
+      isActive: true 
+    });
+    
+    // Get user progress for this stitch
+    const userProgress = await UserProgress.findOne({
+      userId: userId,
+      stitch: stitch._id,
+      isActive: true
+    });
+    
+    // Add progress data to stitch object
+    stitchObj.userProgress = {
+      currentStep: userProgress ? (userProgress.completedSteps || 0) : 0,
+      totalSteps: totalSteps,
+      isCompleted: userProgress ? (userProgress.completedSteps >= totalSteps) : false,
+      isFavorite: userProgress ? (userProgress.isFavorite || false) : false,
+      lastPracticed: userProgress ? userProgress.lastPracticed : null,
+      practiceCount: userProgress ? (userProgress.practiceCount || 0) : 0
+    };
+    
+    stitchesWithProgress.push(stitchObj);
+  }
+  
+  return stitchesWithProgress;
+}

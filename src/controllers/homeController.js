@@ -1,10 +1,11 @@
 const Stitch = require('../models/Stitch');
 const UserProgress = require('../models/UserProgress');
+const Step = require('../models/Step');
 
 // Get featured stitches for home page
 exports.getFeaturedStitches = async (req, res) => {
   try {
-    const { limit = 6, category } = req.query;
+    const { limit = 6, category, userId } = req.query;
 
     // Build filter for featured stitches
     const filter = { 
@@ -25,9 +26,15 @@ exports.getFeaturedStitches = async (req, res) => {
       .sort({ createdAt: -1 }) // Most recent first
       .limit(parseInt(limit));
 
+    // If userId provided, add user progress data
+    let stitchesWithProgress = featuredStitches;
+    if (userId) {
+      stitchesWithProgress = await addUserProgressToStitches(featuredStitches, userId);
+    }
+
     res.json({
       success: true,
-      data: featuredStitches
+      data: stitchesWithProgress
     });
   } catch (error) {
     res.status(500).json({
@@ -279,3 +286,39 @@ exports.getHomePageData = async (req, res) => {
     });
   }
 };
+
+// Helper function to add user progress to stitches array
+async function addUserProgressToStitches(stitches, userId) {
+  const stitchesWithProgress = [];
+  
+  for (const stitch of stitches) {
+    const stitchObj = stitch.toObject();
+    
+    // Get total steps for this stitch
+    const totalSteps = await Step.countDocuments({ 
+      stitch: stitch._id, 
+      isActive: true 
+    });
+    
+    // Get user progress for this stitch
+    const userProgress = await UserProgress.findOne({
+      userId: userId,
+      stitch: stitch._id,
+      isActive: true
+    });
+    
+    // Add progress data to stitch object
+    stitchObj.userProgress = {
+      currentStep: userProgress ? (userProgress.completedSteps || 0) : 0,
+      totalSteps: totalSteps,
+      isCompleted: userProgress ? (userProgress.completedSteps >= totalSteps) : false,
+      isFavorite: userProgress ? (userProgress.isFavorite || false) : false,
+      lastPracticed: userProgress ? userProgress.lastPracticed : null,
+      practiceCount: userProgress ? (userProgress.practiceCount || 0) : 0
+    };
+    
+    stitchesWithProgress.push(stitchObj);
+  }
+  
+  return stitchesWithProgress;
+}

@@ -1,11 +1,13 @@
 const Step = require('../models/Step');
 const Stitch = require('../models/Stitch');
+const UserProgress = require('../models/UserProgress');
 const { processUploadedFiles } = require('../utils/fileUtils');
 
 // Get all steps for a stitch
 exports.getStepsByStitch = async (req, res) => {
   try {
     const { id: stitchId } = req.params;
+    const { userId } = req.query;
 
     // Verify stitch exists
     const stitch = await Stitch.findOne({ _id: stitchId, isActive: true });
@@ -19,9 +21,15 @@ exports.getStepsByStitch = async (req, res) => {
     const steps = await Step.find({ stitch: stitchId, isActive: true })
       .sort({ stepNumber: 1 });
 
+    // If userId provided, add user's active step information
+    let stepsWithProgress = steps;
+    if (userId) {
+      stepsWithProgress = await addActiveStepToSteps(steps, userId, stitchId);
+    }
+
     res.json({
       success: true,
-      data: steps
+      data: stepsWithProgress
     });
   } catch (error) {
     res.status(500).json({
@@ -147,3 +155,33 @@ exports.deleteStep = async (req, res) => {
     });
   }
 };
+
+// Helper function to add active step information to steps array
+async function addActiveStepToSteps(steps, userId, stitchId) {
+  const stepsWithProgress = [];
+  
+  // Get user progress for this stitch
+  const userProgress = await UserProgress.findOne({
+    userId: userId,
+    stitch: stitchId,
+    isActive: true
+  });
+  
+  const currentStep = userProgress ? (userProgress.completedSteps || 0) : 0;
+  const nextActiveStep = currentStep + 1; // Next step to work on
+  
+  for (const step of steps) {
+    const stepObj = step.toObject();
+    
+    // Add step status information
+    stepObj.stepStatus = {
+      isCompleted: step.stepNumber <= currentStep,
+      isActive: step.stepNumber === nextActiveStep,
+      isLocked: step.stepNumber > nextActiveStep
+    };
+    
+    stepsWithProgress.push(stepObj);
+  }
+  
+  return stepsWithProgress;
+}

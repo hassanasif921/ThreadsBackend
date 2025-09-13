@@ -367,39 +367,19 @@ Get all steps for a specific stitch with optional user progress.
         "videoThumbnail": "uploads/thumbnails/step1-thumb.jpg"
       }
     }
-  ]
-}
-```
-
-### Update Step
-
-Update an existing step.
-
-- **URL**: `/stitches/steps/{id}`
-- **Method**: `PUT`
-- **Content-Type**: `multipart/form-data`
-
-**Form Data**: Same as Create Step
-
-### Delete Step
-
-Delete a step permanently.
-
-- **URL**: `/stitches/steps/{id}`
-- **Method**: `DELETE`
-
-### Reorder Steps
-
-Change the order of steps for a stitch.
-
-- **URL**: `/stitches/{stitchId}/steps/reorder`
-- **Method**: `PUT`
-- **Content-Type**: `application/json`
-
-**Request Body**:
-```json
-{
-  "stepOrder": ["step_id_3", "step_id_1", "step_id_2"]
+    
+    ### Reorder Steps
+    
+    Change the order of steps for a stitch.
+    
+    - **URL**: `/stitches/{stitchId}/steps/reorder`
+    - **Method**: `PUT`
+    - **Content-Type**: `application/json`
+    
+    **Request Body**:
+    ```json
+    {
+      "stepOrder": ["step_id_3", "step_id_1", "step_id_2"]
 }
 ```
 
@@ -451,7 +431,7 @@ Update user's progress on a stitch.
 
 Add or remove a stitch from user's favorites.
 
-- **URL**: `/stitches/{stitchId}/favorite/{userId}`
+- **URL**: `/stitches/{stitchId}/favorite`
 - **Method**: `POST`
 - **Auth**: Required
 

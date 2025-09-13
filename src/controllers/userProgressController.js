@@ -6,7 +6,7 @@ const Step = require('../models/Step');
 exports.getUserProgress = async (req, res) => {
   try {
     const { id: stitchId } = req.params;
-    const userId = req.user.uid;
+    const userId = req.user.uid || req.user.id;
 
     const progress = await UserProgress.findOne({
       userId,
@@ -47,7 +47,7 @@ exports.getUserProgress = async (req, res) => {
 exports.updateUserProgress = async (req, res) => {
   try {
     const { id: stitchId } = req.params;
-    const userId = req.user.uid;
+    const userId = req.user.uid || req.user.id;
     const updateData = req.body;
 
     // Verify stitch exists
@@ -88,7 +88,7 @@ exports.updateUserProgress = async (req, res) => {
 exports.toggleFavorite = async (req, res) => {
   try {
     const { id: stitchId } = req.params;
-    const userId = req.user.uid;
+    const userId = req.user.uid || req.user.id;
 
     // Verify stitch exists
     const stitch = await Stitch.findOne({ _id: stitchId, isActive: true });
@@ -132,7 +132,7 @@ exports.toggleFavorite = async (req, res) => {
 exports.markStepComplete = async (req, res) => {
   try {
     const { id: stitchId, stepId } = req.params;
-    const userId = req.user.uid;
+    const userId = req.user.uid || req.user.id;
 
     // Verify stitch and step exist
     const stitch = await Stitch.findOne({ _id: stitchId, isActive: true });
@@ -192,7 +192,7 @@ exports.markStepComplete = async (req, res) => {
 exports.unmarkStepComplete = async (req, res) => {
   try {
     const { id: stitchId, stepId } = req.params;
-    const userId = req.user.uid;
+    const userId = req.user.uid || req.user.id;
 
     const progress = await UserProgress.findOne({ userId, stitch: stitchId });
     

@@ -33,7 +33,7 @@ router.post('/:stitchId/steps', authMiddleware, upload.fields([
   { name: 'videos', maxCount: 2 }
 ]), stepController.createStep);
 
-router.put('/:stitchId/steps/:stepId', authMiddleware, upload.fields([
+router.patch('/:stitchId/steps/:stepId', authMiddleware, upload.fields([
   { name: 'images', maxCount: 5 },
   { name: 'videos', maxCount: 2 }
 ]), stepController.updateStep);

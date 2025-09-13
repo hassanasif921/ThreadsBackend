@@ -141,6 +141,8 @@ exports.searchStitches = async (req, res) => {
 // Get stitch by ID
 exports.getStitchById = async (req, res) => {
   try {
+    const { userId } = req.query;
+    
     const stitch = await Stitch.findOne({ _id: req.params.id, isActive: true })
       .populate('family', 'name description')
       .populate('difficulty', 'name level color description')
@@ -155,9 +157,16 @@ exports.getStitchById = async (req, res) => {
       });
     }
 
+    // If userId provided, add user progress data
+    let stitchWithProgress = stitch;
+    if (userId) {
+      const stitchesWithProgress = await addUserProgressToStitches([stitch], userId);
+      stitchWithProgress = stitchesWithProgress[0];
+    }
+
     res.json({
       success: true,
-      data: stitch
+      data: stitchWithProgress
     });
   } catch (error) {
     res.status(500).json({

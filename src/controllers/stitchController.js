@@ -356,9 +356,9 @@ async function addUserProgressToStitches(stitches, userId) {
     
     // Add progress data to stitch object
     stitchObj.userProgress = {
-      currentStep: userProgress ? (userProgress.completedSteps || 0) : 0,
+      currentStep: userProgress ? (userProgress.completedSteps ? userProgress.completedSteps.length : 0) : 0,
       totalSteps: totalSteps,
-      isCompleted: userProgress ? (userProgress.completedSteps >= totalSteps) : false,
+      isCompleted: userProgress ? (userProgress.completedSteps ? userProgress.completedSteps.length >= totalSteps : false) : false,
       isFavorite: userProgress ? (userProgress.isFavorite || false) : false,
       lastPracticed: userProgress ? userProgress.lastPracticed : null,
       practiceCount: userProgress ? (userProgress.practiceCount || 0) : 0

@@ -40,6 +40,10 @@ const stitchSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Swatch'
   }],
+  materials: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Material'
+  }],
   hexCodes: [{
     type: String,
     validate: {

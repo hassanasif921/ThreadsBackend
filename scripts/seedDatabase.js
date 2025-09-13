@@ -11,6 +11,7 @@ const Usage = require('../src/models/Usage');
 const Difficulty = require('../src/models/Difficulty');
 const Tag = require('../src/models/Tag');
 const Swatch = require('../src/models/Swatch');
+const Material = require('../src/models/Material');
 
 // CSV data parsed from the spreadsheet
 const stitchData = [
@@ -207,11 +208,11 @@ async function createTaxonomyItems() {
 
   // Create some basic swatches
   const swatches = [
-    { name: "Black", hexCode: "#000000", rgbCode: { r: 0, g: 0, b: 0 } },
-    { name: "White", hexCode: "#FFFFFF", rgbCode: { r: 255, g: 255, b: 255 } },
-    { name: "Red", hexCode: "#FF0000", rgbCode: { r: 255, g: 0, b: 0 } },
-    { name: "Blue", hexCode: "#0000FF", rgbCode: { r: 0, g: 0, b: 255 } },
-    { name: "Green", hexCode: "#00FF00", rgbCode: { r: 0, g: 255, b: 0 } }
+    { name: "Red", hexCode: "#FF0000", description: "Bright red color" },
+    { name: "Blue", hexCode: "#0000FF", description: "Deep blue color" },
+    { name: "Green", hexCode: "#00FF00", description: "Vibrant green color" },
+    { name: "Yellow", hexCode: "#FFFF00", description: "Bright yellow color" },
+    { name: "Purple", hexCode: "#800080", description: "Rich purple color" }
   ];
 
   const createdSwatches = {};
@@ -220,7 +221,81 @@ async function createTaxonomyItems() {
     createdSwatches[swatch.name] = created._id;
   }
 
-  return { createdFamilies, createdUsages, createdDifficulties, createdTags, createdSwatches };
+  // Sample materials data
+  const materials = [
+    {
+      name: "DMC Cotton Floss",
+      description: "High-quality 6-strand cotton embroidery floss",
+      type: "thread",
+      weight: "6-strand",
+      fiber: "cotton",
+      brand: "DMC",
+      color: "Various",
+      notes: "Most popular embroidery thread, available in 500+ colors"
+    },
+    {
+      name: "Madeira Silk Thread",
+      description: "Premium silk embroidery thread",
+      type: "thread",
+      weight: "fine",
+      fiber: "silk",
+      brand: "Madeira",
+      color: "Various",
+      notes: "Luxurious silk thread with beautiful sheen"
+    },
+    {
+      name: "Anchor Cotton Floss",
+      description: "6-strand cotton embroidery floss",
+      type: "thread",
+      weight: "6-strand",
+      fiber: "cotton",
+      brand: "Anchor",
+      color: "Various",
+      notes: "High-quality cotton floss, good color fastness"
+    },
+    {
+      name: "Linen Fabric",
+      description: "Natural linen fabric for embroidery",
+      type: "fabric",
+      fiber: "linen",
+      color: "Natural",
+      notes: "Traditional fabric for counted thread embroidery"
+    },
+    {
+      name: "Aida Cloth",
+      description: "Even-weave fabric with regular holes",
+      type: "fabric",
+      fiber: "cotton",
+      color: "White",
+      notes: "Perfect for cross-stitch and counted embroidery"
+    },
+    {
+      name: "Metallic Thread",
+      description: "Decorative metallic embroidery thread",
+      type: "thread",
+      fiber: "polyester",
+      color: "Gold",
+      hexCode: "#FFD700",
+      notes: "Adds sparkle and shine to embroidery work"
+    },
+    {
+      name: "Wool Yarn",
+      description: "Soft wool yarn for crewel embroidery",
+      type: "yarn",
+      weight: "worsted",
+      fiber: "wool",
+      color: "Various",
+      notes: "Traditional yarn for crewel and tapestry work"
+    }
+  ];
+
+  const createdMaterials = {};
+  for (const material of materials) {
+    const created = await Material.create(material);
+    createdMaterials[material.name] = created._id;
+  }
+
+  return { createdFamilies, createdUsages, createdDifficulties, createdTags, createdSwatches, createdMaterials };
 }
 
 // Get all images for a stitch from images folder
@@ -340,7 +415,7 @@ function getStepImagePath(referenceNumber, stepNumber) {
 // Create stitches and steps
 async function createStitches(taxonomyItems) {
   console.log('Creating stitches and steps...');
-  const { createdFamilies, createdUsages, createdDifficulties, createdTags, createdSwatches } = taxonomyItems;
+  const { createdFamilies, createdUsages, createdDifficulties, createdTags, createdSwatches, createdMaterials } = taxonomyItems;
 
   for (const stitchInfo of stitchData) {
     try {
@@ -394,6 +469,32 @@ async function createStitches(taxonomyItems) {
       const allImages = getAllStitchImages(stitchInfo.referenceNumber);
       const featuredImage = getThumbnailImage(stitchInfo.referenceNumber);
 
+      // Assign some materials based on stitch type
+      const materialIds = [];
+      if (stitchInfo.name.toLowerCase().includes('silk') || stitchInfo.difficulty === 'Advanced') {
+        materialIds.push(createdMaterials["Madeira Silk Thread"]);
+      } else {
+        materialIds.push(createdMaterials["DMC Cotton Floss"]);
+      }
+      
+      // Add fabric for certain stitches
+      if (stitchInfo.name.toLowerCase().includes('running') || stitchInfo.name.toLowerCase().includes('back')) {
+        materialIds.push(createdMaterials["Linen Fabric"]);
+      }
+
+      // Assign swatches based on stitch characteristics
+      const swatchIds = [];
+      if (stitchInfo.name.toLowerCase().includes('whipped') || stitchInfo.name.toLowerCase().includes('chain')) {
+        swatchIds.push(createdSwatches["Blue"]);
+        swatchIds.push(createdSwatches["Purple"]);
+      } else if (stitchInfo.name.toLowerCase().includes('running') || stitchInfo.name.toLowerCase().includes('back')) {
+        swatchIds.push(createdSwatches["Red"]);
+        swatchIds.push(createdSwatches["Green"]);
+      } else {
+        swatchIds.push(createdSwatches["Yellow"]);
+        swatchIds.push(createdSwatches["Blue"]);
+      }
+
       // Create stitch
       const stitchData = {
         name: stitchInfo.name,
@@ -405,7 +506,8 @@ async function createStitches(taxonomyItems) {
         usages: usageIds,
         difficulty: difficultyId,
         tags: tagIds,
-        swatches: [], // Leave empty for now as requested
+        swatches: swatchIds,
+        materials: materialIds,
         hexCodes: [], // Leave empty for now as requested
         featuredImage: featuredImage,
         images: allImages
@@ -441,24 +543,14 @@ async function createStitches(taxonomyItems) {
 // Clear existing data
 async function clearDatabase() {
   console.log('Clearing existing data...');
-  
-  // Drop collections to clear old indexes
-  try {
-    await mongoose.connection.db.dropCollection('steps');
-    await mongoose.connection.db.dropCollection('stitches');
-  } catch (error) {
-    // Collections might not exist, ignore error
-  }
-  
-  await Promise.all([
-    Stitch.deleteMany({}),
-    Step.deleteMany({}),
-    Family.deleteMany({}),
-    Usage.deleteMany({}),
-    Difficulty.deleteMany({}),
-    Tag.deleteMany({}),
-    Swatch.deleteMany({})
-  ]);
+  await Stitch.deleteMany({});
+  await Step.deleteMany({});
+  await Family.deleteMany({});
+  await Usage.deleteMany({});
+  await Difficulty.deleteMany({});
+  await Tag.deleteMany({});
+  await Swatch.deleteMany({});
+  await Material.deleteMany({});
   console.log('Database cleared');
 }
 
@@ -480,24 +572,15 @@ async function seedDatabase() {
     console.log('Database seeding completed successfully!');
     
     // Print summary
-    const counts = await Promise.all([
-      Stitch.countDocuments(),
-      Step.countDocuments(),
-      Family.countDocuments(),
-      Usage.countDocuments(),
-      Difficulty.countDocuments(),
-      Tag.countDocuments(),
-      Swatch.countDocuments()
-    ]);
-    
-    console.log('\nDatabase Summary:');
-    console.log(`Stitches: ${counts[0]}`);
-    console.log(`Steps: ${counts[1]}`);
-    console.log(`Families: ${counts[2]}`);
-    console.log(`Usages: ${counts[3]}`);
-    console.log(`Difficulties: ${counts[4]}`);
-    console.log(`Tags: ${counts[5]}`);
-    console.log(`Swatches: ${counts[6]}`);
+    console.log(`\nDatabase Summary:
+Stitches: ${await Stitch.countDocuments()}
+Steps: ${await Step.countDocuments()}
+Families: ${await Family.countDocuments()}
+Usages: ${await Usage.countDocuments()}
+Difficulties: ${await Difficulty.countDocuments()}
+Tags: ${await Tag.countDocuments()}
+Swatches: ${await Swatch.countDocuments()}
+Materials: ${await Material.countDocuments()}`);
     
   } catch (error) {
     console.error('Seeding error:', error);

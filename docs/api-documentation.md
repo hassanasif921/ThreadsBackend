@@ -115,7 +115,7 @@ Retrieve stitches with filtering, searching, and pagination.
 - `isPremium` (boolean): Filter by premium status
 - `search` (string): Search in name and description
 
-**Example**: `/stitches?page=1&limit=10&family=family_id&search=french`
+**Example**: `/stitches?page=1&limit=10&family=family_id&materials=material_id&search=french`
 
 **Success Response** (200):
 ```json
@@ -657,6 +657,7 @@ All error responses follow this format:
   "usages": ["ObjectId (ref: Usage)"],
   "tags": ["ObjectId (ref: Tag)"],
   "swatches": ["ObjectId (ref: Swatch)"],
+  "materials": ["ObjectId (ref: Material)"],
   "hexCodes": ["String (hex color codes)"],
   "featuredImage": {
     "filename": "String",
@@ -793,6 +794,118 @@ All error responses follow this format:
   "updatedAt": "Date"
 }
 ```
+
+### Material Model
+```javascript
+{
+  "_id": "ObjectId",
+  "name": "String (required, unique)",
+  "description": "String",
+  "type": "String (enum: thread, fabric, yarn, ribbon, wire, other)",
+  "weight": "String (e.g., 6-strand, worsted weight)",
+  "fiber": "String (e.g., cotton, silk, wool, polyester)",
+  "brand": "String",
+  "color": "String",
+  "hexCode": "String (hex color code, optional)",
+  "notes": "String",
+  "isActive": "Boolean (default: true)",
+  "createdAt": "Date",
+  "updatedAt": "Date"
+}
+```
+
+## Stitch API Endpoints
+
+### GET /api/stitches
+Get all stitches with optional filtering and pagination.
+
+**Query Parameters:**
+- `page` (number): Page number (default: 1)
+- `limit` (number): Items per page (default: 20)
+- `family` (string): Filter by family ID
+- `difficulty` (string): Filter by difficulty ID
+- `usage` (string|array): Filter by usage ID(s)
+- `tags` (string|array): Filter by tag ID(s)
+- `materials` (string|array): Filter by material ID(s)
+- `search` (string): Search in name, description, and alternative names
+- `sortBy` (string): Sort field (default: 'name')
+- `sortOrder` (string): Sort order 'asc' or 'desc' (default: 'asc')
+
+**Response:**
+```javascript
+{
+  "success": true,
+  "data": [Stitch],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalItems": 25,
+    "itemsPerPage": 20
+  }
+}
+```
+
+### GET /api/stitches/:id
+Get a specific stitch by ID.
+
+### POST /api/stitches (Protected)
+Create a new stitch.
+
+### PUT /api/stitches/:id (Protected)
+Update an existing stitch.
+
+### DELETE /api/stitches/:id (Protected)
+Soft delete a stitch.
+
+---
+
+## Material API Endpoints
+
+### GET /api/materials
+Get all materials with optional filtering and pagination.
+
+**Query Parameters:**
+- `page` (number): Page number (default: 1)
+- `limit` (number): Items per page (default: 50)
+- `type` (string): Filter by material type
+- `fiber` (string): Filter by fiber type
+- `brand` (string): Filter by brand
+- `search` (string): Search in name, description, brand, or fiber
+
+**Response:**
+```javascript
+{
+  "success": true,
+  "data": [Material],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalItems": 25,
+    "itemsPerPage": 50
+  }
+}
+```
+
+### GET /api/materials/:id
+Get a specific material by ID.
+
+### POST /api/materials (Protected)
+Create a new material.
+
+### PUT /api/materials/:id (Protected)
+Update an existing material.
+
+### DELETE /api/materials/:id (Protected)
+Soft delete a material.
+
+### GET /api/materials/types
+Get all available material types.
+
+### GET /api/materials/fibers
+Get all available material fibers.
+
+### GET /api/materials/brands
+Get all available material brands.
 
 ---
 

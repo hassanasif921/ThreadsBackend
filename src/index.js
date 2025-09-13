@@ -16,12 +16,21 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Routes
-app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/firebase-auth', require('./routes/firebaseAuthRoutes'));
-app.use('/api/stitches', require('./routes/stitchRoutes'));
-app.use('/api/taxonomy', require('./routes/taxonomyRoutes'));
-app.use('/api/progress', require('./routes/userProgressRoutes'));
-app.use('/api/categories', require('./routes/categoryRoutes'));
+const userRoutes = require('./routes/userRoutes');
+const firebaseAuthRoutes = require('./routes/firebaseAuthRoutes');
+const stitchRoutes = require('./routes/stitchRoutes');
+const taxonomyRoutes = require('./routes/taxonomyRoutes');
+const userProgressRoutes = require('./routes/userProgressRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
+const materialRoutes = require('./routes/materialRoutes');
+
+app.use('/api/users', userRoutes);
+app.use('/api/firebase-auth', firebaseAuthRoutes);
+app.use('/api/stitches', stitchRoutes);
+app.use('/api/taxonomy', taxonomyRoutes);
+app.use('/api/progress', userProgressRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/materials', materialRoutes);
 
 // Static file serving for uploads
 app.use('/uploads', express.static('uploads'));

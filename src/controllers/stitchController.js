@@ -11,6 +11,7 @@ exports.getAllStitches = async (req, res) => {
       difficulty,
       usage,
       tags,
+      materials,
       search,
       sortBy = 'name',
       sortOrder = 'asc'
@@ -25,6 +26,10 @@ exports.getAllStitches = async (req, res) => {
     if (tags) {
       const tagArray = Array.isArray(tags) ? tags : [tags];
       filter.tags = { $in: tagArray };
+    }
+    if (materials) {
+      const materialArray = Array.isArray(materials) ? materials : [materials];
+      filter.materials = { $in: materialArray };
     }
     if (search) {
       filter.$or = [
@@ -45,6 +50,7 @@ exports.getAllStitches = async (req, res) => {
       .populate('usages', 'name description')
       .populate('tags', 'name')
       .populate('swatches', 'name hexCode')
+      .populate('materials', 'name type fiber brand color')
       .sort(sortOptions)
       .skip(skip)
       .limit(parseInt(limit));
@@ -73,7 +79,7 @@ exports.getAllStitches = async (req, res) => {
 // Search stitches
 exports.searchStitches = async (req, res) => {
   try {
-    const { q, limit = 10 } = req.query;
+    const { q, materials, limit = 10 } = req.query;
 
     if (!q) {
       return res.status(400).json({
@@ -82,17 +88,26 @@ exports.searchStitches = async (req, res) => {
       });
     }
 
-    const stitches = await Stitch.find({
+    const filter = {
       isActive: true,
       $or: [
         { name: { $regex: q, $options: 'i' } },
         { description: { $regex: q, $options: 'i' } },
         { alternativeNames: { $regex: q, $options: 'i' } }
       ]
-    })
+    };
+
+    // Add material filter if provided
+    if (materials) {
+      const materialArray = Array.isArray(materials) ? materials : [materials];
+      filter.materials = { $in: materialArray };
+    }
+
+    const stitches = await Stitch.find(filter)
       .populate('family', 'name')
       .populate('difficulty', 'name level')
-      .select('name description referenceNumber images')
+      .populate('materials', 'name type fiber brand')
+      .select('name description referenceNumber images materials')
       .limit(parseInt(limit));
 
     res.json({

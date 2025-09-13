@@ -4,7 +4,35 @@ const Family = require('../models/Family');
 // Get stitches grouped by categories (families)
 exports.getStitchesByCategory = async (req, res) => {
   try {
-    const { includeSteps = false } = req.query;
+    const { 
+      includeSteps = false,
+      difficulty,
+      usage,
+      tags,
+      materials,
+      search
+    } = req.query;
+
+    // Build filter for stitches
+    const stitchFilter = { isActive: true };
+    
+    if (difficulty) stitchFilter.difficulty = difficulty;
+    if (usage) stitchFilter.usages = { $in: Array.isArray(usage) ? usage : [usage] };
+    if (tags) {
+      const tagArray = Array.isArray(tags) ? tags : [tags];
+      stitchFilter.tags = { $in: tagArray };
+    }
+    if (materials) {
+      const materialArray = Array.isArray(materials) ? materials : [materials];
+      stitchFilter.materials = { $in: materialArray };
+    }
+    if (search) {
+      stitchFilter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { alternativeNames: { $regex: search, $options: 'i' } }
+      ];
+    }
 
     // Get all families (categories)
     const families = await Family.find({ isActive: true }).sort({ name: 1 });
@@ -12,12 +40,16 @@ exports.getStitchesByCategory = async (req, res) => {
     const categorizedStitches = [];
 
     for (const family of families) {
+      // Add family filter to stitch filter
+      const familyStitchFilter = { ...stitchFilter, family: family._id };
+      
       // Get stitches for this family
-      let stitchQuery = Stitch.find({ family: family._id, isActive: true })
+      let stitchQuery = Stitch.find(familyStitchFilter)
         .populate('difficulty', 'name level color')
         .populate('usages', 'name description')
         .populate('tags', 'name')
         .populate('swatches', 'name hexCode')
+        .populate('materials', 'name type fiber brand color')
         .sort({ name: 1 });
 
       const stitches = await stitchQuery;

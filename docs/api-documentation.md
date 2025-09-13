@@ -886,6 +886,7 @@ Get all stitches with optional filtering and pagination.
 - `page` (number): Page number (default: 1)
 - `limit` (number): Items per page (default: 20)
 - `family` (string): Filter by family ID
+- `category` (string): Filter by category/family ID (use "all" for all categories)
 - `difficulty` (string): Filter by difficulty ID
 - `usage` (string|array): Filter by usage ID(s)
 - `tags` (string|array): Filter by tag ID(s)
@@ -893,6 +894,7 @@ Get all stitches with optional filtering and pagination.
 - `search` (string): Search in name, description, and alternative names
 - `sortBy` (string): Sort field (default: 'name')
 - `sortOrder` (string): Sort order 'asc' or 'desc' (default: 'asc')
+- `userId` (string, optional): Include user progress data in response
 
 **Response:**
 ```javascript

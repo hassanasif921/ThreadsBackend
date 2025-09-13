@@ -10,6 +10,7 @@ exports.getAllStitches = async (req, res) => {
       page = 1,
       limit = 20,
       family,
+      category,
       difficulty,
       usage,
       tags,
@@ -24,6 +25,7 @@ exports.getAllStitches = async (req, res) => {
 
     // Apply filters
     if (family) filter.family = family;
+    if (category && category.toLowerCase() !== 'all') filter.family = category;
     if (difficulty) filter.difficulty = difficulty;
     if (usage) filter.usages = { $in: Array.isArray(usage) ? usage : [usage] };
     if (tags) {

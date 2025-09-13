@@ -412,6 +412,13 @@ function getStepImagePath(referenceNumber, stepNumber) {
   return null;
 }
 
+// Helper function to determine which stitches should be featured
+function shouldBeFeatured(referenceNumber) {
+  // Make certain stitches featured for demo purposes
+  const featuredStitches = ['1001', '1002', '1003', '1004', '1005', '1006', '1036', '1037'];
+  return featuredStitches.includes(referenceNumber);
+}
+
 // Create stitches and steps
 async function createStitches(taxonomyItems) {
   console.log('Creating stitches and steps...');
@@ -467,7 +474,17 @@ async function createStitches(taxonomyItems) {
 
       // Get all images and featured image for this stitch
       const allImages = getAllStitchImages(stitchInfo.referenceNumber);
-      const featuredImage = getThumbnailImage(stitchInfo.referenceNumber);
+      let featuredImage = getThumbnailImage(stitchInfo.referenceNumber);
+      
+      // Create dummy featured image for certain stitches if none exists
+      if (!featuredImage && shouldBeFeatured(stitchInfo.referenceNumber)) {
+        featuredImage = {
+          filename: `${stitchInfo.referenceNumber}_thumb.jpg`,
+          originalName: `${stitchInfo.referenceNumber}_thumb.jpg`,
+          path: `uploads/thumbnails/${stitchInfo.referenceNumber}_thumb.jpg`,
+          size: 1024 // dummy size
+        };
+      }
 
       // Assign some materials based on stitch type
       const materialIds = [];
@@ -505,6 +522,7 @@ async function createStitches(taxonomyItems) {
         family: familyId,
         usages: usageIds,
         difficulty: difficultyId,
+        isFeatured: shouldBeFeatured(stitchInfo.referenceNumber),
         tags: tagIds,
         swatches: swatchIds,
         materials: materialIds,

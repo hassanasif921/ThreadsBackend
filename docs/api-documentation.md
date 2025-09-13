@@ -909,6 +909,121 @@ Get all available material brands.
 
 ---
 
+## Home Page API Endpoints
+
+### GET /api/home/featured
+Get featured stitches for the home page.
+
+**Query Parameters:**
+- `limit` (number): Maximum results (default: 6)
+- `category` (string): Filter by category/family ID (use "all" for all categories)
+
+**Response:**
+```javascript
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "stitch_id",
+      "name": "French Knot",
+      "description": "A decorative knot stitch",
+      "referenceNumber": "1001",
+      "featuredImage": {
+        "filename": "1001_thumb.jpg",
+        "path": "uploads/thumbnails/1001_thumb.jpg"
+      },
+      "difficulty": {
+        "name": "Beginner",
+        "level": 1,
+        "color": "#4CAF50"
+      },
+      "family": {
+        "name": "Knot Stitch Family"
+      },
+      "materials": [
+        {
+          "name": "DMC Cotton Floss",
+          "type": "thread",
+          "fiber": "cotton"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### GET /api/home/favorites/:userId (Protected)
+Get user's favorite stitches.
+
+**Query Parameters:**
+- `limit` (number): Maximum results (default: 10)
+
+**Response:**
+```javascript
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "stitch_id",
+      "name": "Chain Stitch",
+      "userProgress": {
+        "isFavorite": true,
+        "completedSteps": 3,
+        "practiceCount": 5,
+        "lastPracticed": "2024-01-15T10:30:00Z",
+        "notes": "Great for outlines"
+      }
+    }
+  ]
+}
+```
+
+### GET /api/home/continue-learning/:userId (Protected)
+Get user's in-progress stitches for continue learning section.
+
+**Query Parameters:**
+- `limit` (number): Maximum results (default: 10)
+- `category` (string): Filter by category/family ID (use "all" for all categories)
+
+**Response:**
+```javascript
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "stitch_id",
+      "name": "French Knot",
+      "userProgress": {
+        "completedSteps": 2,
+        "totalSteps": 4,
+        "progressPercentage": 50,
+        "lastPracticed": "2024-01-14T15:20:00Z"
+      }
+    }
+  ]
+}
+```
+
+### GET /api/home/home
+Get combined home page data (featured + user data if userId provided).
+
+**Query Parameters:**
+- `userId` (string, optional): User ID for personalized data
+
+**Response:**
+```javascript
+{
+  "success": true,
+  "data": {
+    "featured": [/* Featured stitches array */],
+    "favorites": [/* User favorites array */],
+    "continueLearning": [/* In-progress stitches array */]
+  }
+}
+```
+
+---
+
 ## Rate Limiting
 
 Currently no rate limiting is implemented. Consider adding rate limiting for production use.

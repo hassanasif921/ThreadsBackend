@@ -23,6 +23,7 @@ const taxonomyRoutes = require('./routes/taxonomyRoutes');
 const userProgressRoutes = require('./routes/userProgressRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const materialRoutes = require('./routes/materialRoutes');
+const homeRoutes = require('./routes/homeRoutes');
 
 app.use('/api/users', userRoutes);
 app.use('/api/firebase-auth', firebaseAuthRoutes);
@@ -31,6 +32,7 @@ app.use('/api/taxonomy', taxonomyRoutes);
 app.use('/api/progress', userProgressRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/materials', materialRoutes);
+app.use('/api/home', homeRoutes);
 
 // Static file serving for uploads
 app.use('/uploads', express.static('uploads'));

@@ -88,6 +88,10 @@ const stitchSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  isFeatured: {
+    type: Boolean,
+    default: false
+  },
   isActive: {
     type: Boolean,
     default: true
@@ -103,6 +107,7 @@ stitchSchema.index({ difficulty: 1 });
 stitchSchema.index({ family: 1 });
 stitchSchema.index({ tags: 1 });
 stitchSchema.index({ isActive: 1 });
+stitchSchema.index({ isFeatured: 1 });
 stitchSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Stitch', stitchSchema);

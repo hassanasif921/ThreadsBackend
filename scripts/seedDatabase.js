@@ -412,6 +412,39 @@ function getStepImagePath(referenceNumber, stepNumber) {
   return null;
 }
 
+// Get all available videos from videos folder
+function getAllVideos() {
+  const videosDir = 'uploads/videos';
+  const videos = [];
+  
+  try {
+    if (!fs.existsSync(videosDir)) {
+      return videos;
+    }
+    
+    const files = fs.readdirSync(videosDir);
+    
+    files.forEach(file => {
+      if (file.endsWith('.mp4') || file.endsWith('.mov') || file.endsWith('.avi') || file.endsWith('.webm')) {
+        const filePath = `uploads/videos/${file}`;
+        const stats = fs.statSync(filePath);
+        videos.push({
+          filename: file,
+          originalName: file,
+          path: filePath,
+          size: stats.size,
+          duration: null // We don't have duration info, can be added later
+        });
+      }
+    });
+    
+  } catch (error) {
+    console.log('Error reading videos:', error.message);
+  }
+  
+  return videos;
+}
+
 // Helper function to determine which stitches should be featured
 function shouldBeFeatured(referenceNumber) {
   // Make certain stitches featured for demo purposes
@@ -536,15 +569,30 @@ async function createStitches(taxonomyItems) {
 
       // Create steps
       if (stitchInfo.steps && stitchInfo.steps.length > 0) {
+        // Get all available videos to assign to steps
+        const allVideos = getAllVideos();
+        
         for (let i = 0; i < stitchInfo.steps.length; i++) {
           const stepNumber = i + 1;
           const stepImage = getStepImagePath(stitchInfo.referenceNumber, stepNumber);
+          
+          // Assign videos to steps (distribute available videos across steps)
+          const stepVideos = [];
+          if (allVideos.length > 0) {
+            // For demo purposes, assign first video to step 1, second video to step 2, etc.
+            // Cycle through videos if there are more steps than videos
+            const videoIndex = (i) % allVideos.length;
+            if (i < 2) { // Only assign videos to first 2 steps for demo
+              stepVideos.push(allVideos[videoIndex]);
+            }
+          }
 
           const stepData = {
             stitch: createdStitch._id,
             stepNumber: stepNumber,
             instruction: stitchInfo.steps[i],
-            images: stepImage ? [stepImage] : []
+            images: stepImage ? [stepImage] : [],
+            videos: stepVideos
           };
 
           await Step.create(stepData);

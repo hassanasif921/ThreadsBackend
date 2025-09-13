@@ -30,4 +30,7 @@ router.post('/login', userController.login);
 // Get user profile route (protected by JWT auth)
 router.get('/profile/:id', authMiddleware, userController.getProfile);
 
+// Change password route (protected by JWT auth)
+router.post('/change-password', authMiddleware, userController.changePassword);
+
 module.exports = router;

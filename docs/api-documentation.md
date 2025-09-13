@@ -32,6 +32,53 @@ Protected routes require Firebase Authentication. Include the JWT token in the A
 Authorization: Bearer <firebase-jwt-token>
 ```
 
+### User Authentication Endpoints
+
+#### POST /api/users/change-password (Protected)
+Change password for authenticated users.
+
+**Headers:**
+```
+Authorization: Bearer <jwt_token>
+```
+
+**Request Body:**
+```javascript
+{
+  "currentPassword": "currentPassword123",
+  "newPassword": "newSecurePassword123"
+}
+```
+
+**Response:**
+```javascript
+{
+  "success": true,
+  "message": "Password changed successfully"
+}
+```
+
+**Error Responses:**
+```javascript
+// Current password incorrect
+{
+  "success": false,
+  "message": "Current password is incorrect"
+}
+
+// New password too weak
+{
+  "success": false,
+  "message": "New password must be at least 6 characters long"
+}
+
+// Same password
+{
+  "success": false,
+  "message": "New password must be different from current password"
+}
+```
+
 ## File Uploads
 
 The API supports image and video uploads with the following specifications:

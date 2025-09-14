@@ -73,6 +73,25 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  profilePicture: {
+    filename: String,
+    originalName: String,
+    path: String,
+    size: Number,
+    uploadDate: {
+      type: Date,
+      default: Date.now
+    }
+  },
+  bio: {
+    type: String,
+    maxlength: [500, 'Bio cannot exceed 500 characters'],
+    trim: true
+  },
+  location: {
+    type: String,
+    trim: true
+  },
   createdAt: {
     type: Date,
     default: Date.now

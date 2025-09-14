@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
 const authMiddleware = require('../middleware/authMiddleware');
+const upload = require('../middleware/uploadMiddleware');
 
 // User registration route
 router.post('/register', userController.register);
@@ -30,7 +31,8 @@ router.post('/login', userController.login);
 // Get user profile route (protected by JWT auth)
 router.get('/profile/:id', authMiddleware, userController.getProfile);
 
-// Change password route (protected by JWT auth)
+// Protected routes (require authentication)
+router.patch('/profile', authMiddleware, upload.single('profilePicture'), userController.updateProfile);
 router.post('/change-password', authMiddleware, userController.changePassword);
 
 module.exports = router;

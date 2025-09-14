@@ -221,7 +221,12 @@ const userController = {
           lastName: user.lastName,
           email: user.email,
           phoneNumber: user.phoneNumber,
-          termsAccepted: user.termsAccepted
+          bio: user.bio,
+          location: user.location,
+          profilePicture: user.profilePicture,
+          termsAccepted: user.termsAccepted,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt
         }
       });
     } catch (error) {
@@ -582,56 +587,101 @@ const userController = {
     }
   },
 
-  /**
-   * Change user password (authenticated users)
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   * @returns {Object} - Response with password change status
-   */
-  changePassword: async (req, res) => {
+/**
+ * Verify OTP and generate reset token
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} - Response with reset token
+ */
+verifyResetOTP: async (req, res) => {
+  try {
+    const { userId, otp } = req.body;
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    // Check if OTP is valid and not expired
+    if (user.otp !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid verification code'
+      });
+    }
+    
+    if (user.otpExpiry < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification code has expired'
+      });
+    }
+    
+    // Generate reset token (JWT with short expiry)
+    const resetToken = jwtUtils.generateToken(
+      { userId: user._id, purpose: 'password-reset' },
+      '15m' // Token valid for 15 minutes
+    );
+    
+    // Clear OTP after successful verification
+    user.otp = null;
+    user.otpExpiry = null;
+    await user.save();
+    
+    return res.status(200).json({
+      success: true,
+      message: 'OTP verified successfully',
+      resetToken
+    });
+  } catch (error) {
+    console.error('Verify reset OTP error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error during OTP verification',
+      error: error.message
+    });
+  }
+},
+
+/**
+ * Reset password using token
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} - Response with reset status
+ */
+resetPassword: async (req, res) => {
+  try {
+    const { resetToken, newPassword } = req.body;
+    
+    if (!resetToken || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reset token and new password are required'
+      });
+    }
+    
+    // Verify reset token
     try {
-      const { currentPassword, newPassword } = req.body;
-      const userId = req.user.id; // From auth middleware
+      const decoded = jwtUtils.verifyToken(resetToken);
       
-      if (!currentPassword || !newPassword) {
+      // Check if token is for password reset
+      if (decoded.purpose !== 'password-reset') {
         return res.status(400).json({
           success: false,
-          message: 'Current password and new password are required'
-        });
-      }
-      
-      // Validate new password strength
-      if (newPassword.length < 6) {
-        return res.status(400).json({
-          success: false,
-          message: 'New password must be at least 6 characters long'
+          message: 'Invalid reset token'
         });
       }
       
       // Find user
-      const user = await User.findById(userId);
+      const user = await User.findById(decoded.userId);
       if (!user) {
         return res.status(404).json({
           success: false,
           message: 'User not found'
-        });
-      }
-      
-      // Verify current password
-      const isCurrentPasswordValid = await user.comparePassword(currentPassword);
-      if (!isCurrentPasswordValid) {
-        return res.status(400).json({
-          success: false,
-          message: 'Current password is incorrect'
-        });
-      }
-      
-      // Check if new password is different from current
-      const isSamePassword = await user.comparePassword(newPassword);
-      if (isSamePassword) {
-        return res.status(400).json({
-          success: false,
-          message: 'New password must be different from current password'
         });
       }
       
@@ -641,17 +691,161 @@ const userController = {
       
       return res.status(200).json({
         success: true,
-        message: 'Password changed successfully'
+        message: 'Password reset successfully'
       });
     } catch (error) {
-      console.error('Change password error:', error);
-      return res.status(500).json({
+      // Token verification failed
+      return res.status(401).json({
         success: false,
-        message: 'Server error during password change',
-        error: error.message
+        message: 'Invalid or expired reset token'
       });
     }
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error during password reset',
+      error: error.message
+    });
   }
+},
+
+/**
+ * Update user profile
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} - Response with updated user data
+ */
+updateProfile: async (req, res) => {
+  try {
+    const userId = req.user.uid || req.user.id;
+    const { firstName, lastName, bio, location } = req.body;
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Update basic profile fields
+    if (firstName) user.firstName = firstName.trim();
+    if (lastName) user.lastName = lastName.trim();
+    if (bio !== undefined) user.bio = bio.trim();
+    if (location !== undefined) user.location = location.trim();
+
+    // Handle profile picture upload
+    if (req.file) {
+      user.profilePicture = {
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        path: req.file.path,
+        size: req.file.size,
+        uploadDate: new Date()
+      };
+    }
+
+    await user.save();
+
+    // Return updated user data (excluding sensitive fields)
+    const updatedUser = {
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      bio: user.bio,
+      location: user.location,
+      profilePicture: user.profilePicture,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    };
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: updatedUser
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error updating profile',
+      error: error.message
+    });
+  }
+},
+
+/**
+ * Change user password (authenticated users)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} - Response with password change status
+ */
+changePassword: async (req, res) => {
+  try {
+    const userId = req.user.uid || req.user.id;
+    const { currentPassword, newPassword } = req.body;
+
+    // Validate required fields
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password and new password are required'
+      });
+    }
+
+    // Validate new password length
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters long'
+      });
+    }
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await user.comparePassword(currentPassword);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    // Check if new password is different from current
+    const isSamePassword = await user.comparePassword(newPassword);
+    if (isSamePassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be different from current password'
+      });
+    }
+
+    // Update password
+    user.password = newPassword;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error changing password',
+      error: error.message
+    });
+  }
+}
 };
 
 module.exports = userController;

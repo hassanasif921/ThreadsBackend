@@ -34,41 +34,84 @@ Authorization: Bearer <firebase-jwt-token>
 
 ### User Authentication Endpoints
 
-#### POST /api/users/change-password (Protected)
-Change password for authenticated users.
+#### POST /api/users/change-password### Update Profile
 
-**Headers:**
-```
-Authorization: Bearer <jwt_token>
-```
+Update user profile information including profile picture.
 
-**Request Body:**
+- **URL**: `/users/profile`
+- **Method**: `PATCH`
+- **Auth**: Required
+- **Content-Type**: `multipart/form-data`
+
+**Form Data**:
 ```javascript
 {
-  "currentPassword": "currentPassword123",
-  "newPassword": "newSecurePassword123"
+  "firstName": "John",
+  "lastName": "Doe", 
+  "bio": "Embroidery enthusiast and teacher",
+  "location": "New York, NY",
+  "profilePicture": [File] // Optional image file
 }
 ```
 
-**Response:**
-```javascript
+**Success Response** (200):
+```json
+{
+  "success": true,
+  "message": "Profile updated successfully",
+  "data": {
+    "_id": "user_id",
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john@example.com",
+    "bio": "Embroidery enthusiast and teacher",
+    "location": "New York, NY",
+    "profilePicture": {
+      "filename": "profile_123.jpg",
+      "originalName": "my-photo.jpg",
+      "path": "uploads/profiles/profile_123.jpg",
+      "size": 245760,
+      "uploadDate": "2024-01-15T10:30:00Z"
+    },
+    "createdAt": "2024-01-01T00:00:00Z",
+    "updatedAt": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+**Error Responses**:
+- 400: Invalid input data
+- 404: User not found
+- 500: Server error
+
+### Change Password
+
+Change user's password (requires current password).
+
+- **URL**: `/users/change-password`
+- **Method**: `POST`
+- **Auth**: Required
+
+**Request Body**:
+```json
+{
+  "currentPassword": "oldpassword123",
+  "newPassword": "newpassword456"
+}
+```
+
+**Success Response** (200):
+```json
 {
   "success": true,
   "message": "Password changed successfully"
 }
 ```
 
-**Error Responses:**
-```javascript
-// Current password incorrect
-{
-  "success": false,
-  "message": "Current password is incorrect"
-}
-
-// New password too weak
-{
-  "success": false,
+**Error Responses**:
+- 400: Current password incorrect, new password too short, or same as current
+- 404: User not found
+- 500: Server error
   "message": "New password must be at least 6 characters long"
 }
 

@@ -1,6 +1,17 @@
 const mongoose = require('mongoose');
 
 const stepSchema = new mongoose.Schema({
+  author: {
+    name: {
+      type: String,
+      required: true,
+      default: 'John'
+    },
+    image: {
+      type: String,
+      default: 'https://www.shutterstock.com/image-vector/vector-bright-portrait-beautiful-brunette-600nw-2452267975.jpg'
+    }
+  },
   stitch: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Stitch',

@@ -50,6 +50,7 @@ exports.getAllStitches = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const stitches = await Stitch.find(filter)
+      .select('name description referenceNumber alternativeNames difficulty family usages tags swatches materials hexCodes featuredImage thumbnailImage gallery isActive createdAt updatedAt author')
       .populate('family', 'name description')
       .populate('difficulty', 'name level color')
       .populate('usages', 'name description')
@@ -118,7 +119,7 @@ exports.searchStitches = async (req, res) => {
       .populate('family', 'name')
       .populate('difficulty', 'name level')
       .populate('materials', 'name type fiber brand')
-      .select('name description referenceNumber images materials')
+      .select('name description referenceNumber images materials author')
       .limit(parseInt(limit));
 
     // If userId provided, add user progress data
@@ -146,6 +147,7 @@ exports.getStitchById = async (req, res) => {
     const { userId } = req.query;
     
     const stitch = await Stitch.findOne({ _id: req.params.id, isActive: true })
+      .select('name description referenceNumber alternativeNames difficulty family usages tags swatches materials hexCodes featuredImage thumbnailImage gallery isActive createdAt updatedAt author')
       .populate('family', 'name description')
       .populate('difficulty', 'name level color description')
       .populate('usages', 'name description')

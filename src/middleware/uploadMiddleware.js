@@ -6,7 +6,8 @@ const fs = require('fs');
 const uploadDirs = [
   'uploads/images',
   'uploads/videos',
-  'uploads/thumbnails'
+  'uploads/thumbnails',
+  'uploads/profiles'
 ];
 
 uploadDirs.forEach(dir => {
@@ -67,7 +68,7 @@ const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB limit
+    fileSize: 100 * 1024 * 1024, // 100MB limit
     files: 20 // Maximum 20 files per request
   }
 });
@@ -78,7 +79,7 @@ const handleMulterError = (error, req, res, next) => {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
         success: false,
-        message: 'File too large. Maximum size is 50MB.'
+        message: 'File too large. Maximum size is 100MB.'
       });
     }
     if (error.code === 'LIMIT_FILE_COUNT') {
@@ -105,5 +106,25 @@ const handleMulterError = (error, req, res, next) => {
   next(error);
 };
 
-module.exports = upload;
-module.exports.handleMulterError = handleMulterError;
+// Configure profile picture storage
+const profileStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/profiles/');
+  },
+  filename: function (req, file, cb) {
+    // Generate unique filename for profile pictures
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, 'profile-' + uniqueSuffix + ext);
+  }
+});
+
+// Configure multer for profile pictures
+const uploadProfile = multer({
+  storage: profileStorage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit for profile pictures
+    files: 1 // Only one profile picture per request
+  }
+});

@@ -128,3 +128,10 @@ const uploadProfile = multer({
     files: 1 // Only one profile picture per request
   }
 });
+
+// Export the upload instances and error handling middleware
+module.exports = {
+  upload,
+  uploadProfile,
+  handleMulterError
+};

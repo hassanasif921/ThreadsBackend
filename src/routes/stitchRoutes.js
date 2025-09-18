@@ -4,7 +4,7 @@ const stitchController = require('../controllers/stitchController');
 const stepController = require('../controllers/stepController');
 const userProgressController = require('../controllers/userProgressController');
 const authMiddleware = require('../middleware/authMiddleware');
-const upload = require('../middleware/uploadMiddleware');
+const { upload } = require('../middleware/uploadMiddleware');
 
 // Protected stitch routes (require authentication)
 router.get('/', authMiddleware, stitchController.getAllStitches);

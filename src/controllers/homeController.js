@@ -3,7 +3,7 @@ const UserProgress = require('../models/UserProgress');
 const Step = require('../models/Step');
 
 // Get featured stitches for home page
-exports.getFeaturedStitches = async (req, res) => {
+async function getFeaturedStitches(req, res) {
   try {
     const { limit = 6, category, userId } = req.query;
 
@@ -46,7 +46,7 @@ exports.getFeaturedStitches = async (req, res) => {
 };
 
 // Get user's favorite stitches
-exports.getFavoriteStitches = async (req, res) => {
+async function getFavoriteStitches(req, res) {
   try {
     const { userId } = req.params;
     const { limit = 10 } = req.query;
@@ -99,7 +99,7 @@ exports.getFavoriteStitches = async (req, res) => {
 };
 
 // Get continue learning stitches for a user
-exports.getContinueLearning = async (req, res) => {
+async function getContinueLearning(req, res) {
   try {
     const { userId } = req.params;
     const { limit = 10, category } = req.query;
@@ -176,7 +176,7 @@ exports.getContinueLearning = async (req, res) => {
 };
 
 // Get home page data (combined endpoint)
-exports.getHomePageData = async (req, res) => {
+async function getHomePageData(req, res) {
   try {
     const { userId } = req.query;
     const featuredLimit = 6;
@@ -322,3 +322,10 @@ async function addUserProgressToStitches(stitches, userId) {
   
   return stitchesWithProgress;
 }
+
+module.exports = {
+  getFeaturedStitches,
+  getFavoriteStitches,
+  getContinueLearning,
+  getHomePageData
+};

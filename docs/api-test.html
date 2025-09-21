@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Testing - Profile Update & Step Update</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .response {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .auth-section {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>API Testing - Complete User Flow</h1>
+    
+    <!-- Authentication Section -->
+    <div class="auth-section">
+        <h3>Authentication Status</h3>
+        <div class="form-group">
+            <label for="authToken">JWT Token:</label>
+            <input type="text" id="authToken" placeholder="Token will be auto-filled after login">
+            <small>This will be automatically populated when you login below</small>
+        </div>
+        <div id="authStatus" style="margin-top: 10px; font-weight: bold;"></div>
+    </div>
+
+    <!-- Authentication Forms -->
+    <div class="two-column">
+        <!-- Signup Form -->
+        <div class="container">
+            <h2>User Registration</h2>
+            <p><strong>Endpoint:</strong> POST /api/users/register</p>
+            
+            <form id="signupForm">
+                <div class="form-group">
+                    <label for="signupFirstName">First Name:</label>
+                    <input type="text" id="signupFirstName" name="firstName" placeholder="John" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="signupLastName">Last Name:</label>
+                    <input type="text" id="signupLastName" name="lastName" placeholder="Doe" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="signupEmail">Email:</label>
+                    <input type="email" id="signupEmail" name="email" placeholder="john@example.com" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="signupPhone">Phone Number:</label>
+                    <input type="tel" id="signupPhone" name="phoneNumber" placeholder="+1234567890" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="signupPassword">Password:</label>
+                    <input type="password" id="signupPassword" name="password" placeholder="Password (min 6 chars)" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="termsAccepted" name="termsAccepted" required>
+                        I accept the terms and conditions
+                    </label>
+                </div>
+                
+                <button type="button" onclick="testSignup()">Register</button>
+                <button type="button" onclick="clearSignupForm()">Clear Form</button>
+            </form>
+            
+            <div id="signupResponse" class="response" style="display: none;"></div>
+        </div>
+
+        <!-- Login Form -->
+        <div class="container">
+            <h2>User Login</h2>
+            <p><strong>Endpoint:</strong> POST /api/users/login</p>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">Email:</label>
+                    <input type="email" id="loginEmail" name="email" placeholder="john@example.com" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="loginPassword">Password:</label>
+                    <input type="password" id="loginPassword" name="password" placeholder="Your password" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="loginTermsAccepted" name="termsAccepted">
+                        Accept terms and conditions (if not already accepted)
+                    </label>
+                </div>
+                
+                <button type="button" onclick="testLogin()">Login</button>
+                <button type="button" onclick="clearLoginForm()">Clear Form</button>
+            </form>
+            
+            <div id="loginResponse" class="response" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Email Verification Section -->
+    <div class="container">
+        <h2>Email Verification</h2>
+        <p><strong>Endpoint:</strong> POST /api/users/verify-email</p>
+        <p><em>Note: For testing, use OTP "0000"</em></p>
+        
+        <form id="verifyForm">
+            <div class="form-group">
+                <label for="verifyUserId">User ID:</label>
+                <input type="text" id="verifyUserId" name="userId" placeholder="User ID from registration response" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="verifyOtp">OTP Code:</label>
+                <input type="text" id="verifyOtp" name="otp" placeholder="0000" value="0000" required>
+            </div>
+            
+            <button type="button" onclick="testEmailVerification()">Verify Email</button>
+            <button type="button" onclick="clearVerifyForm()">Clear Form</button>
+        </form>
+        
+        <div id="verifyResponse" class="response" style="display: none;"></div>
+    </div>
+
+    <div class="two-column">
+        <!-- Profile Update API Test -->
+        <div class="container">
+            <h2>Profile Update API Test</h2>
+            <p><strong>Endpoint:</strong> POST /api/users/profile</p>
+            <p><strong>Authentication:</strong> Required (JWT Token)</p>
+            
+            <form id="profileForm">
+                <div class="form-group">
+                    <label for="firstName">First Name:</label>
+                    <input type="text" id="firstName" name="firstName" placeholder="John">
+                </div>
+                
+                <div class="form-group">
+                    <label for="lastName">Last Name:</label>
+                    <input type="text" id="lastName" name="lastName" placeholder="Doe">
+                </div>
+                
+                <div class="form-group">
+                    <label for="bio">Bio:</label>
+                    <textarea id="bio" name="bio" rows="3" placeholder="Tell us about yourself..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="location">Location:</label>
+                    <input type="text" id="location" name="location" placeholder="New York, NY">
+                </div>
+                
+                <div class="form-group">
+                    <label for="profilePicture">Profile Picture:</label>
+                    <input type="file" id="profilePicture" name="profilePicture" accept="image/*">
+                </div>
+                
+                <button type="button" onclick="testProfileUpdate()">Update Profile</button>
+                <button type="button" onclick="clearProfileForm()">Clear Form</button>
+            </form>
+            
+            <div id="profileResponse" class="response" style="display: none;"></div>
+        </div>
+
+        <!-- Step Update API Test -->
+        <div class="container">
+            <h2>Step Update API Test</h2>
+            <p><strong>Endpoint:</strong> PATCH /api/stitches/:stitchId/steps/:stepId</p>
+            <p><strong>Authentication:</strong> Required (JWT Token)</p>
+            
+            <form id="stepForm">
+                <div class="form-group">
+                    <label for="stitchId">Stitch ID:</label>
+                    <input type="text" id="stitchId" name="stitchId" placeholder="Enter stitch ID" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="stepId">Step ID:</label>
+                    <input type="text" id="stepId" name="stepId" placeholder="Enter step ID" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="stepNumber">Step Number:</label>
+                    <input type="number" id="stepNumber" name="stepNumber" placeholder="1" min="1">
+                </div>
+                
+                <div class="form-group">
+                    <label for="title">Title:</label>
+                    <input type="text" id="title" name="title" placeholder="Step title">
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Description:</label>
+                    <textarea id="description" name="description" rows="3" placeholder="Step description..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="instructions">Instructions:</label>
+                    <textarea id="instructions" name="instructions" rows="4" placeholder="Detailed instructions..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="tips">Tips:</label>
+                    <textarea id="tips" name="tips" rows="2" placeholder="Helpful tips..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="stepImages">Step Images:</label>
+                    <input type="file" id="stepImages" name="images" multiple accept="image/*">
+                </div>
+                
+                <div class="form-group">
+                    <label for="stepVideos">Step Videos:</label>
+                    <input type="file" id="stepVideos" name="videos" multiple accept="video/*">
+                </div>
+                
+                <button type="button" onclick="testStepUpdate()">Update Step</button>
+                <button type="button" onclick="clearStepForm()">Clear Form</button>
+            </form>
+            
+            <div id="stepResponse" class="response" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Sample Data Section -->
+    <div class="container">
+        <h2>Sample Test Data</h2>
+        <div class="two-column">
+            <div>
+                <h3>Authentication Samples</h3>
+                <button onclick="fillSignupSample()">Fill Signup Data</button>
+                <button onclick="fillLoginSample()">Fill Login Data</button>
+                <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 10px;">
+Signup:
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john.doe@example.com",
+  "phoneNumber": "+1234567890",
+  "password": "password123",
+  "termsAccepted": true
+}
+
+Login:
+{
+  "email": "john.doe@example.com",
+  "password": "password123"
+}</pre>
+            </div>
+            <div>
+                <h3>Profile Update Sample</h3>
+                <button onclick="fillProfileSample()">Fill Sample Data</button>
+                <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 10px;">
+{
+  "firstName": "Jane",
+  "lastName": "Smith", 
+  "bio": "Passionate crafter and thread enthusiast",
+  "location": "San Francisco, CA"
+}</pre>
+            </div>
+        </div>
+        <div class="two-column" style="margin-top: 20px;">
+            <div>
+                <h3>Step Update Sample</h3>
+                <button onclick="fillStepSample()">Fill Sample Data</button>
+                <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 10px;">
+{
+  "stepNumber": 1,
+  "title": "Getting Started",
+  "description": "Learn the basics",
+  "instructions": "Follow these steps carefully...",
+  "tips": "Take your time and practice"
+}</pre>
+            </div>
+            <div>
+                <h3>Complete User Flow</h3>
+                <ol style="margin-top: 10px; padding-left: 20px;">
+                    <li>Register a new user</li>
+                    <li>Verify email with OTP "0000"</li>
+                    <li>Login to get JWT token</li>
+                    <li>Update profile (optional)</li>
+                    <li>Test step updates (need valid IDs)</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000/api';
+
+        function getAuthHeaders() {
+            const token = document.getElementById('authToken').value;
+            if (!token) {
+                alert('Please enter your JWT token first!');
+                return null;
+            }
+            return {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+        }
+
+        async function testProfileUpdate() {
+            const headers = getAuthHeaders();
+            if (!headers) return;
+
+            const formData = new FormData();
+            
+            // Add text fields
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const bio = document.getElementById('bio').value;
+            const location = document.getElementById('location').value;
+            
+            if (firstName) formData.append('firstName', firstName);
+            if (lastName) formData.append('lastName', lastName);
+            if (bio) formData.append('bio', bio);
+            if (location) formData.append('location', location);
+            
+            // Add file if selected
+            const profilePicture = document.getElementById('profilePicture').files[0];
+            if (profilePicture) {
+                formData.append('profilePicture', profilePicture);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/profile`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': headers.Authorization
+                        // Don't set Content-Type for FormData, let browser set it
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+                displayResponse('profileResponse', data, response.ok);
+            } catch (error) {
+                displayResponse('profileResponse', { error: error.message }, false);
+            }
+        }
+
+        async function testStepUpdate() {
+            const headers = getAuthHeaders();
+            if (!headers) return;
+
+            const stitchId = document.getElementById('stitchId').value;
+            const stepId = document.getElementById('stepId').value;
+            
+            if (!stitchId || !stepId) {
+                alert('Please enter both Stitch ID and Step ID!');
+                return;
+            }
+
+            const formData = new FormData();
+            
+            // Add text fields
+            const stepNumber = document.getElementById('stepNumber').value;
+            const title = document.getElementById('title').value;
+            const description = document.getElementById('description').value;
+            const instructions = document.getElementById('instructions').value;
+            const tips = document.getElementById('tips').value;
+            
+            if (stepNumber) formData.append('stepNumber', stepNumber);
+            if (title) formData.append('title', title);
+            if (description) formData.append('description', description);
+            if (instructions) formData.append('instructions', instructions);
+            if (tips) formData.append('tips', tips);
+            
+            // Add images
+            const images = document.getElementById('stepImages').files;
+            for (let i = 0; i < images.length; i++) {
+                formData.append('images', images[i]);
+            }
+            
+            // Add videos
+            const videos = document.getElementById('stepVideos').files;
+            for (let i = 0; i < videos.length; i++) {
+                formData.append('videos', videos[i]);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/stitches/${stitchId}/steps/${stepId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': headers.Authorization
+                        // Don't set Content-Type for FormData, let browser set it
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+                displayResponse('stepResponse', data, response.ok);
+            } catch (error) {
+                displayResponse('stepResponse', { error: error.message }, false);
+            }
+        }
+
+        function displayResponse(elementId, data, isSuccess) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.textContent = JSON.stringify(data, null, 2);
+            element.className = `response ${isSuccess ? 'success' : 'error'}`;
+        }
+
+        function clearProfileForm() {
+            document.getElementById('profileForm').reset();
+            document.getElementById('profileResponse').style.display = 'none';
+        }
+
+        function clearStepForm() {
+            document.getElementById('stepForm').reset();
+            document.getElementById('stepResponse').style.display = 'none';
+        }
+
+        function fillProfileSample() {
+            document.getElementById('firstName').value = 'Jane';
+            document.getElementById('lastName').value = 'Smith';
+            document.getElementById('bio').value = 'Passionate crafter and thread enthusiast';
+            document.getElementById('location').value = 'San Francisco, CA';
+        }
+
+        function fillStepSample() {
+            document.getElementById('stepNumber').value = '1';
+            document.getElementById('title').value = 'Getting Started';
+            document.getElementById('description').value = 'Learn the basics';
+            document.getElementById('instructions').value = 'Follow these steps carefully...';
+            document.getElementById('tips').value = 'Take your time and practice';
+        }
+
+        // Authentication functions
+        async function testSignup() {
+            const formData = {
+                firstName: document.getElementById('signupFirstName').value,
+                lastName: document.getElementById('signupLastName').value,
+                email: document.getElementById('signupEmail').value,
+                phoneNumber: document.getElementById('signupPhone').value,
+                password: document.getElementById('signupPassword').value,
+                termsAccepted: document.getElementById('termsAccepted').checked
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+                displayResponse('signupResponse', data, response.ok);
+                
+                // Auto-fill verification form if registration successful
+                if (response.ok && data.userId) {
+                    document.getElementById('verifyUserId').value = data.userId;
+                    updateAuthStatus('Registration successful! Please verify your email.');
+                }
+            } catch (error) {
+                displayResponse('signupResponse', { error: error.message }, false);
+            }
+        }
+
+        async function testLogin() {
+            const formData = {
+                email: document.getElementById('loginEmail').value,
+                password: document.getElementById('loginPassword').value,
+                termsAccepted: document.getElementById('loginTermsAccepted').checked
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+                displayResponse('loginResponse', data, response.ok);
+                
+                // Auto-fill JWT token if login successful
+                if (response.ok && data.token) {
+                    document.getElementById('authToken').value = data.token;
+                    updateAuthStatus(`Login successful! Welcome ${data.user.firstName}!`);
+                }
+            } catch (error) {
+                displayResponse('loginResponse', { error: error.message }, false);
+            }
+        }
+
+        async function testEmailVerification() {
+            const formData = {
+                userId: document.getElementById('verifyUserId').value,
+                otp: document.getElementById('verifyOtp').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/verify-email`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+                displayResponse('verifyResponse', data, response.ok);
+                
+                if (response.ok) {
+                    updateAuthStatus('Email verified successfully! You can now login.');
+                }
+            } catch (error) {
+                displayResponse('verifyResponse', { error: error.message }, false);
+            }
+        }
+
+        function updateAuthStatus(message) {
+            const statusElement = document.getElementById('authStatus');
+            statusElement.textContent = message;
+            statusElement.style.color = '#155724';
+        }
+
+        function clearSignupForm() {
+            document.getElementById('signupForm').reset();
+            document.getElementById('signupResponse').style.display = 'none';
+        }
+
+        function clearLoginForm() {
+            document.getElementById('loginForm').reset();
+            document.getElementById('loginResponse').style.display = 'none';
+        }
+
+        function clearVerifyForm() {
+            document.getElementById('verifyForm').reset();
+            document.getElementById('verifyResponse').style.display = 'none';
+        }
+
+        function fillSignupSample() {
+            document.getElementById('signupFirstName').value = 'John';
+            document.getElementById('signupLastName').value = 'Doe';
+            document.getElementById('signupEmail').value = 'john.doe@example.com';
+            document.getElementById('signupPhone').value = '+1234567890';
+            document.getElementById('signupPassword').value = 'password123';
+            document.getElementById('termsAccepted').checked = true;
+        }
+
+        function fillLoginSample() {
+            document.getElementById('loginEmail').value = 'john.doe@example.com';
+            document.getElementById('loginPassword').value = 'password123';
+        }
+    </script>
+</body>
+</html>

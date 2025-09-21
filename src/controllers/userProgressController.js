@@ -133,6 +133,7 @@ exports.markStepComplete = async (req, res) => {
   try {
     const { id: stitchId, stepId } = req.params;
     const userId = req.user.uid || req.user.id;
+    const { notes, difficultyRating, timeSpent } = req.body || {};
 
     // Verify stitch and step exist
     const stitch = await Stitch.findOne({ _id: stitchId, isActive: true });
@@ -158,25 +159,58 @@ exports.markStepComplete = async (req, res) => {
       progress = new UserProgress({
         userId,
         stitch: stitchId,
-        completedSteps: [{ step: stepId }]
+        completedSteps: [{
+          step: stepId,
+          completedAt: new Date(),
+          notes: notes || '',
+          difficultyRating: difficultyRating || null,
+          timeSpent: timeSpent || null
+        }],
+        lastPracticed: new Date(),
+        practiceCount: 1
       });
     } else {
       // Check if step is already completed
-      const existingStep = progress.completedSteps.find(
+      const existingStepIndex = progress.completedSteps.findIndex(
         cs => cs.step.toString() === stepId
       );
       
-      if (!existingStep) {
-        progress.completedSteps.push({ step: stepId });
+      if (existingStepIndex === -1) {
+        // Add new completed step
+        progress.completedSteps.push({
+          step: stepId,
+          completedAt: new Date(),
+          notes: notes || '',
+          difficultyRating: difficultyRating || null,
+          timeSpent: timeSpent || null
+        });
+      } else {
+        // Update existing completed step
+        progress.completedSteps[existingStepIndex].completedAt = new Date();
+        if (notes) progress.completedSteps[existingStepIndex].notes = notes;
+        if (difficultyRating) progress.completedSteps[existingStepIndex].difficultyRating = difficultyRating;
+        if (timeSpent) progress.completedSteps[existingStepIndex].timeSpent = timeSpent;
       }
+      
+      // Update overall progress
+      progress.lastPracticed = new Date();
+      progress.practiceCount = (progress.practiceCount || 0) + 1;
     }
 
     await progress.save();
-    await progress.populate('completedSteps.step', 'stepNumber instruction');
+    await progress.populate('completedSteps.step', 'stepNumber title instruction');
+
+    // Calculate completion percentage
+    const totalSteps = await Step.countDocuments({ stitch: stitchId, isActive: true });
+    const completionPercentage = totalSteps > 0 ? Math.round((progress.completedSteps.length / totalSteps) * 100) : 0;
 
     res.json({
       success: true,
-      data: progress,
+      data: {
+        ...progress.toObject(),
+        completionPercentage,
+        totalSteps
+      },
       message: 'Step marked as complete'
     });
   } catch (error) {
@@ -277,6 +311,7 @@ exports.getFavoriteStitches = async (req, res) => {
     });
   }
 };
+
 
 // Get user's progress statistics
 exports.getProgressStats = async (req, res) => {

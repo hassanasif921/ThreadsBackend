@@ -131,10 +131,7 @@ async function getContinueLearning(req, res) {
     const userProgress = await UserProgress.find({
       userId: userId,
       isActive: true,
-      $and: [
-        { completedSteps: { $exists: true, $gt: 0 } }, // Has started
-        { $expr: { $lt: ['$completedSteps', { $size: '$stitch.steps' }] } } // Not completed
-      ]
+      completedSteps: { $exists: true, $not: { $size: 0 } } // Has started (array is not empty)
     })
       .populate(populateQuery)
       .sort({ lastPracticed: -1 })
@@ -146,13 +143,13 @@ async function getContinueLearning(req, res) {
       .map(progress => {
         const stitch = progress.stitch.toObject();
         const totalSteps = stitch.steps ? stitch.steps.length : 0;
-        const completedSteps = progress.completedSteps || 0;
-        const progressPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+        const completedStepsCount = progress.completedSteps ? progress.completedSteps.length : 0;
+        const progressPercentage = totalSteps > 0 ? Math.round((completedStepsCount / totalSteps) * 100) : 0;
 
         return {
           ...stitch,
           userProgress: {
-            completedSteps,
+            completedSteps: completedStepsCount,
             totalSteps,
             progressPercentage,
             lastPracticed: progress.lastPracticed,
@@ -160,6 +157,10 @@ async function getContinueLearning(req, res) {
             notes: progress.notes
           }
         };
+      })
+      .filter(item => {
+        // Only include stitches that are not 100% completed
+        return item.userProgress.progressPercentage < 100;
       });
 
     res.json({

@@ -1,6 +1,7 @@
 const UserProgress = require('../models/UserProgress');
 const Stitch = require('../models/Stitch');
 const Step = require('../models/Step');
+const notificationService = require('../services/notificationService');
 
 // Get user progress for a stitch
 exports.getUserProgress = async (req, res) => {
@@ -203,6 +204,50 @@ exports.markStepComplete = async (req, res) => {
     // Calculate completion percentage
     const totalSteps = await Step.countDocuments({ stitch: stitchId, isActive: true });
     const completionPercentage = totalSteps > 0 ? Math.round((progress.completedSteps.length / totalSteps) * 100) : 0;
+
+    // Send notifications for achievements
+    try {
+      // Check if this is a milestone (25%, 50%, 75%, 100%)
+      const milestones = [25, 50, 75, 100];
+      const currentMilestone = milestones.find(milestone => 
+        completionPercentage >= milestone && 
+        (progress.completedSteps.length - 1) / totalSteps * 100 < milestone
+      );
+
+      if (currentMilestone) {
+        const stitch = await Stitch.findById(stitchId).select('name');
+        
+        if (currentMilestone === 100) {
+          // Stitch completed
+          await notificationService.sendToUser(userId, {
+            title: '🎉 Stitch Completed!',
+            body: `Congratulations! You've completed "${stitch.name}". Great work!`,
+            type: 'achievement',
+            data: {
+              stitchId: stitchId,
+              stitchName: stitch.name,
+              completionPercentage: 100
+            }
+          });
+        } else {
+          // Milestone reached
+          await notificationService.sendToUser(userId, {
+            title: '🌟 Milestone Reached!',
+            body: `You're ${currentMilestone}% done with "${stitch.name}". Keep it up!`,
+            type: 'achievement',
+            data: {
+              stitchId: stitchId,
+              stitchName: stitch.name,
+              milestone: currentMilestone,
+              completionPercentage: currentMilestone
+            }
+          });
+        }
+      }
+    } catch (notificationError) {
+      console.error('Error sending achievement notification:', notificationError);
+      // Don't fail the main operation if notification fails
+    }
 
     res.json({
       success: true,

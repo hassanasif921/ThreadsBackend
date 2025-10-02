@@ -11,6 +11,10 @@ connectDB();
 // Initialize Express app
 const app = express();
 
+// Initialize notification scheduler
+const notificationScheduler = require('./utils/notificationScheduler');
+notificationScheduler.start();
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -24,6 +28,9 @@ const userProgressRoutes = require('./routes/userProgressRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const materialRoutes = require('./routes/materialRoutes');
 const homeRoutes = require('./routes/homeRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+const legalRoutes = require('./routes/legalRoutes');
+const disputeRoutes = require('./routes/disputeRoutes');
 
 app.use('/api/users', userRoutes);
 app.use('/api/firebase-auth', firebaseAuthRoutes);
@@ -33,6 +40,9 @@ app.use('/api/progress', userProgressRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/materials', materialRoutes);
 app.use('/api/home', homeRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/legal', legalRoutes);
+app.use('/api/disputes', disputeRoutes);
 
 // Static file serving for uploads
 app.use('/uploads', express.static('uploads'));

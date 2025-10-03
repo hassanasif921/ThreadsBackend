@@ -4,7 +4,23 @@ const notificationService = require('../services/notificationService');
 // Create a new dispute
 async function createDispute(req, res) {
   try {
+    console.log('createDispute called with params:', req.params);
+    console.log('Request body:', req.body);
+    console.log('Request URL:', req.url);
+    
     const { userId } = req.params;
+    
+    // Validate userId
+    if (!userId) {
+      console.log('Error: No userId provided');
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+    
+    console.log('Processing dispute creation for userId:', userId);
+    
     const {
       category,
       subject,
@@ -15,13 +31,21 @@ async function createDispute(req, res) {
     } = req.body;
 
     // Validate required fields
+    console.log('Validating required fields...');
+    console.log('Category:', category);
+    console.log('Subject:', subject);
+    console.log('Description length:', description?.length);
+    console.log('Contact info:', contactInfo);
+    
     if (!category || !subject || !description || !contactInfo?.email) {
+      console.log('Validation failed - missing required fields');
       return res.status(400).json({
         success: false,
         message: 'Category, subject, description, and email are required'
       });
     }
 
+    console.log('Creating new dispute object...');
     // Create new dispute
     const dispute = new Dispute({
       userId,
@@ -33,7 +57,16 @@ async function createDispute(req, res) {
       relatedItems: relatedItems || {}
     });
 
+    console.log('Dispute object created:', {
+      userId: dispute.userId,
+      category: dispute.category,
+      subject: dispute.subject,
+      priority: dispute.priority
+    });
+
+    console.log('Saving dispute to database...');
     await dispute.save();
+    console.log('Dispute saved successfully with ID:', dispute.disputeId);
 
     // Send confirmation notification to user
     try {
@@ -61,10 +94,18 @@ async function createDispute(req, res) {
     });
   } catch (error) {
     console.error('Error creating dispute:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      code: error.code
+    });
+    
     res.status(500).json({
       success: false,
       message: 'Error creating dispute',
-      error: error.message
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 }
@@ -72,7 +113,23 @@ async function createDispute(req, res) {
 // Get user's disputes
 async function getUserDisputes(req, res) {
   try {
+    console.log('getUserDisputes called with params:', req.params);
+    console.log('Request URL:', req.url);
+    console.log('Request path:', req.path);
+    
     const { userId } = req.params;
+    
+    // Validate userId
+    if (!userId) {
+      console.log('Error: No userId provided');
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+    
+    console.log('Processing request for userId:', userId);
+    
     const { 
       status, 
       category, 
@@ -86,11 +143,17 @@ async function getUserDisputes(req, res) {
     const filter = { userId, isActive: true };
     if (status) filter.status = status;
     if (category) filter.category = category;
+    
+    console.log('Filter:', filter);
 
     // Build sort
     const sort = {};
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+    
+    console.log('Sort:', sort);
+    console.log('Limit:', parseInt(limit), 'Offset:', parseInt(offset));
 
+    console.log('Executing Dispute.find query...');
     const disputes = await Dispute.find(filter)
       .select('-adminNotes -__v')
       .sort(sort)
@@ -98,7 +161,12 @@ async function getUserDisputes(req, res) {
       .skip(parseInt(offset))
       .populate('relatedItems.stitchId', 'name referenceNumber');
 
+    console.log('Found disputes:', disputes.length);
+
+    console.log('Executing count query...');
     const total = await Dispute.countDocuments(filter);
+    
+    console.log('Total count:', total);
 
     res.json({
       success: true,
@@ -112,10 +180,12 @@ async function getUserDisputes(req, res) {
     });
   } catch (error) {
     console.error('Error fetching user disputes:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Error fetching disputes',
-      error: error.message
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 }

@@ -8,8 +8,7 @@ const disputeSchema = new mongoose.Schema({
   },
   disputeId: {
     type: String,
-    unique: true,
-    required: true
+    unique: true
   },
   category: {
     type: String,
@@ -109,10 +108,13 @@ const disputeSchema = new mongoose.Schema({
 
 // Generate dispute ID before saving
 disputeSchema.pre('save', function(next) {
+  console.log('Pre-save hook called. isNew:', this.isNew, 'disputeId:', this.disputeId);
+  
   if (this.isNew && !this.disputeId) {
     const timestamp = Date.now().toString(36);
     const random = Math.random().toString(36).substr(2, 5);
     this.disputeId = `DSP-${timestamp}-${random}`.toUpperCase();
+    console.log('Generated disputeId:', this.disputeId);
   }
   next();
 });

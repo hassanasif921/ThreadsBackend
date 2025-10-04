@@ -1,0 +1,508 @@
+{
+  "info": {
+    "name": "Square Subscriptions API",
+    "description": "Complete API collection for testing Square subscription integration",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "userToken",
+      "value": "your_user_token_here",
+      "type": "string"
+    },
+    {   
+      "key": "adminToken",
+      "value": "your_admin_token_here",
+      "type": "string"
+    },
+    {
+      "key": "monthlyPlanId",
+      "value": "BKWHGZNOZJ3NAYFHKK3GXWRK",
+      "type": "string"
+    },
+    {
+      "key": "yearlyPlanId",
+      "value": "CQF77RXHW5LF6T7ISZ7VWVZ3",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Public Endpoints",
+      "item": [
+        {
+          "name": "Get Subscription Plans",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/plans",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", "plans"]
+            }
+          }
+        },
+        {
+          "name": "Get Free Stitches (Unauthenticated)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/stitches?tier=free",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stitches"],
+              "query": [
+                {
+                  "key": "tier",
+                  "value": "free"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. User Subscription Management",
+      "item": [
+        {
+          "name": "Get My Subscription",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/my-subscription",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", "my-subscription"]
+            }
+          }
+        },
+        {
+          "name": "Start Free Trial",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trialDays\": 7\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/start-trial",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", "start-trial"]
+            }
+          }
+        },
+        {
+          "name": "Subscribe Monthly",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planId\": \"{{monthlyPlanId}}\",\n  \"paymentMethodId\": \"cnon:card-nonce-ok\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/subscribe",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", "subscribe"]
+            }
+          }
+        },
+        {
+          "name": "Subscribe Yearly",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planId\": \"{{yearlyPlanId}}\",\n  \"paymentMethodId\": \"cnon:card-nonce-ok\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/subscribe",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", "subscribe"]
+            }
+          }
+        },
+        {
+          "name": "Update Subscription",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planId\": \"{{yearlyPlanId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/update",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", "update"]
+            }
+          }
+        },
+        {
+          "name": "Cancel Subscription (At Period End)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cancelAtPeriodEnd\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", "cancel"]
+            }
+          }
+        },
+        {
+          "name": "Cancel Subscription (Immediately)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cancelAtPeriodEnd\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", "cancel"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Premium Content Access",
+      "item": [
+        {
+          "name": "Get All Stitches (With Subscription Info)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/stitches",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stitches"]
+            }
+          }
+        },
+        {
+          "name": "Access Premium Content (Should Succeed)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/stitches/STITCH_ID/premium-content",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stitches", "STITCH_ID", "premium-content"]
+            }
+          }
+        },
+        {
+          "name": "Test Premium Route",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/premium-content",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", "premium-content"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Payment Processing",
+      "item": [
+        {
+          "name": "Process One-time Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1999,\n  \"currency\": \"USD\",\n  \"paymentMethodId\": \"cnon:card-nonce-ok\",\n  \"description\": \"Premium content unlock\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/payment",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", "payment"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Admin & Analytics",
+      "item": [
+        {
+          "name": "Get Subscription Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/analytics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", "analytics"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Error Testing",
+      "item": [
+        {
+          "name": "Subscribe with Invalid Plan ID",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planId\": \"INVALID_PLAN_ID\",\n  \"paymentMethodId\": \"cnon:card-nonce-ok\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/subscribe",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", "subscribe"]
+            }
+          }
+        },
+        {
+          "name": "Subscribe with Declined Card",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planId\": \"{{monthlyPlanId}}\",\n  \"paymentMethodId\": \"cnon:card-nonce-declined\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/subscribe",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", "subscribe"]
+            }
+          }
+        },
+        {
+          "name": "Start Trial (Already Used)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trialDays\": 7\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/start-trial",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", "start-trial"]
+            }
+          }
+        },
+        {
+          "name": "Access Premium Content (No Subscription)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/premium-content",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", "premium-content"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Webhooks",
+      "item": [
+        {
+          "name": "Webhook - Subscription Updated",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"subscription.updated\",\n  \"data\": {\n    \"object\": {\n      \"subscription\": {\n        \"id\": \"SUBSCRIPTION_ID\",\n        \"status\": \"ACTIVE\",\n        \"chargedThroughDate\": \"2025-11-04\"\n      }\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", "webhook"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

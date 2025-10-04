@@ -4,15 +4,31 @@ const stitchController = require('../controllers/stitchController');
 const stepController = require('../controllers/stepController');
 const userProgressController = require('../controllers/userProgressController');
 const authMiddleware = require('../middleware/authMiddleware');
+const { checkSubscriptionStatus, filterPremiumContent, requirePremiumAccess } = require('../middleware/subscriptionMiddleware');
 const { upload } = require('../middleware/uploadMiddleware');
 
-// Protected stitch routes (require authentication)
-router.get('/', authMiddleware, stitchController.getAllStitches);
-router.get('/search', authMiddleware, stitchController.searchStitches);
-router.get('/:id', authMiddleware, stitchController.getStitchById);
-router.get('/:id/steps', authMiddleware, stepController.getStepsByStitch);
+// Public routes with subscription filtering
+router.get('/', checkSubscriptionStatus, filterPremiumContent, stitchController.getAllStitches);
+router.get('/search', checkSubscriptionStatus, filterPremiumContent, stitchController.searchStitches);
 
 // Protected stitch routes (require authentication)
+router.get('/:id', authMiddleware, checkSubscriptionStatus, stitchController.getStitchById);
+router.get('/:id/steps', authMiddleware, checkSubscriptionStatus, stepController.getStepsByStitch);
+
+// Premium content routes (require premium subscription)
+router.get('/:id/premium-content', authMiddleware, requirePremiumAccess, (req, res) => {
+  res.json({
+    success: true,
+    message: 'Premium content access granted',
+    data: {
+      highQualityImages: true,
+      videoTutorials: true,
+      detailedInstructions: true
+    }
+  });
+});
+
+// Admin routes (require authentication)
 router.post('/', authMiddleware, upload.fields([
   { name: 'featuredImage', maxCount: 1 },
   { name: 'images', maxCount: 10 },
@@ -28,6 +44,8 @@ router.put('/:id', authMiddleware, upload.fields([
 router.delete('/:id', authMiddleware, stitchController.deleteStitch);
 
 // Step routes
+router.get('/:stitchId/steps/:stepId', authMiddleware, checkSubscriptionStatus, stepController.getStepById);
+
 router.post('/:stitchId/steps', authMiddleware, upload.fields([
   { name: 'images', maxCount: 5 },
   { name: 'videos', maxCount: 2 }

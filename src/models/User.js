@@ -92,6 +92,24 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  squareCustomerId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  subscriptionStatus: {
+    type: String,
+    enum: ['free', 'premium_monthly', 'premium_yearly', 'trial', 'cancelled'],
+    default: 'free'
+  },
+  premiumAccessUntil: {
+    type: Date,
+    default: null
+  },
+  trialUsed: {
+    type: Boolean,
+    default: false
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -126,6 +144,39 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 userSchema.virtual('fullName').get(function() {
   return `${this.firstName} ${this.lastName}`;
 });
+
+// Method to check if user has premium access
+userSchema.methods.hasPremiumAccess = function() {
+  const now = new Date();
+  
+  // Check if user has active premium subscription (monthly or yearly)
+  if (this.subscriptionStatus === 'premium_monthly' || this.subscriptionStatus === 'premium_yearly') {
+    return !this.premiumAccessUntil || this.premiumAccessUntil > now;
+  }
+  
+  // Check if user is in trial period
+  if (this.subscriptionStatus === 'trial') {
+    return this.premiumAccessUntil && this.premiumAccessUntil > now;
+  }
+  
+  return false;
+};
+
+// Method to start free trial
+userSchema.methods.startFreeTrial = function(trialDays = 7) {
+  if (this.trialUsed) {
+    throw new Error('Free trial already used');
+  }
+  
+  const trialEnd = new Date();
+  trialEnd.setDate(trialEnd.getDate() + trialDays);
+  
+  this.subscriptionStatus = 'trial';
+  this.premiumAccessUntil = trialEnd;
+  this.trialUsed = true;
+  
+  return this.save();
+};
 
 const User = mongoose.model('User', userSchema);
 

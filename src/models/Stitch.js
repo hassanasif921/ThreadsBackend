@@ -103,6 +103,15 @@ const stitchSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  tier: {
+    type: String,
+    enum: ['free', 'premium'],
+    default: 'free'
+  },
+  premiumFeatures: [{
+    type: String,
+    enum: ['high_quality_images', 'video_tutorials', 'detailed_instructions', 'pattern_downloads', 'exclusive_content']
+  }],
   isActive: {
     type: Boolean,
     default: true
@@ -119,6 +128,7 @@ stitchSchema.index({ family: 1 });
 stitchSchema.index({ tags: 1 });
 stitchSchema.index({ isActive: 1 });
 stitchSchema.index({ isFeatured: 1 });
+stitchSchema.index({ tier: 1 });
 stitchSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Stitch', stitchSchema);

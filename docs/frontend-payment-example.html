@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Square Payment Test</title>
+    <script src="https://sandbox-web.squarecdn.com/v1/square.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        
+        .plan-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        
+        .plan-card:hover {
+            border-color: #007cba;
+        }
+        
+        .plan-card.selected {
+            border-color: #007cba;
+            background-color: #f0f8ff;
+        }
+        
+        #card-container {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            min-height: 50px;
+        }
+        
+        .pay-button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        .pay-button:hover {
+            background: #005a87;
+        }
+        
+        .pay-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .test-cards {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Square Payment Test</h1>
+    
+    <div class="test-cards">
+        <h3>🧪 Test Card Numbers (Sandbox Only)</h3>
+        <p><strong>Success:</strong> 4111 1111 1111 1111 (Visa)</p>
+        <p><strong>Declined:</strong> 4000 0000 0000 0002</p>
+        <p><strong>CVV:</strong> Any 3 digits (e.g., 123)</p>
+        <p><strong>Expiry:</strong> Any future date (e.g., 12/25)</p>
+        <p><strong>Postal Code:</strong> Any valid code (e.g., 12345)</p>
+        <p><em>⚠️ These are test cards - no real money will be charged!</em></p>
+    </div>
+
+    <h2>Choose Your Plan</h2>
+    
+    <div class="plan-card" data-plan="monthly" data-price="9.99">
+        <h3>Premium Monthly - $9.99/month</h3>
+        <ul>
+            <li>Access to all premium stitches</li>
+            <li>High-quality images and videos</li>
+            <li>Detailed step-by-step instructions</li>
+            <li>Pattern downloads</li>
+        </ul>
+    </div>
+    
+    <div class="plan-card" data-plan="yearly" data-price="99.99">
+        <h3>Premium Yearly - $99.99/year ⭐ Recommended</h3>
+        <ul>
+            <li>All monthly features</li>
+            <li>Save 17% with annual billing</li>
+            <li>Priority customer support</li>
+            <li>Early access to new patterns</li>
+        </ul>
+    </div>
+
+    <div id="payment-section" style="display: none;">
+        <h3>Payment Information</h3>
+        <div id="card-container"></div>
+        <button id="pay-button" class="pay-button">Subscribe Now</button>
+    </div>
+
+    <div id="status"></div>
+
+    <script>
+        // Configuration
+        const SQUARE_APP_ID = 'sandbox-sq0idb-REPLACE_WITH_YOUR_APP_ID'; // Get this from Square Developer Dashboard
+        const SQUARE_LOCATION_ID = 'LQR06ZAM1XC8K'; // Your actual location ID
+        const API_BASE_URL = 'http://localhost:3000';
+        const USER_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4YzQ4ZDliMzAyNzFlOTA5YmMxMGEwZSIsImVtYWlsIjoic2FyZXBvYjQzN0BvYmlyYWguY29tIiwiZmlyc3ROYW1lIjoiZGQiLCJsYXN0TmFtZSI6ImNjIiwiaWF0IjoxNzU3NzE0MjA4LCJleHAiOjE3NjAzMDYyMDh9.1abSKT7bjlIKfHp7T-Ede2igJUJcQJdU-39xoQGDtBg';
+
+        let payments, card;
+        let selectedPlan = null;
+
+        // Initialize Square
+        async function initializeSquare() {
+            if (!window.Square) {
+                showStatus('Square.js failed to load', 'error');
+                return;
+            }
+
+            try {
+                payments = window.Square.payments(SQUARE_APP_ID, SQUARE_LOCATION_ID);
+                card = await payments.card();
+                await card.attach('#card-container');
+                console.log('Square initialized successfully');
+            } catch (error) {
+                console.error('Failed to initialize Square:', error);
+                showStatus('Failed to initialize payment form: ' + error.message, 'error');
+            }
+        }
+
+        // Plan selection
+        document.querySelectorAll('.plan-card').forEach(planCard => {
+            planCard.addEventListener('click', () => {
+                // Remove previous selection
+                document.querySelectorAll('.plan-card').forEach(card => {
+                    card.classList.remove('selected');
+                });
+                
+                // Select current plan
+                planCard.classList.add('selected');
+                selectedPlan = {
+                    id: planCard.dataset.plan,
+                    price: planCard.dataset.price,
+                    name: planCard.querySelector('h3').textContent
+                };
+                
+                // Show payment section
+                document.getElementById('payment-section').style.display = 'block';
+                
+                // Update button text
+                document.getElementById('pay-button').textContent = 
+                    `Subscribe for $${selectedPlan.price}${selectedPlan.id === 'monthly' ? '/month' : '/year'}`;
+            });
+        });
+
+        // Payment processing
+        document.getElementById('pay-button').addEventListener('click', async () => {
+            if (!selectedPlan || !card) {
+                showStatus('Please select a plan and ensure payment form is loaded', 'error');
+                return;
+            }
+
+            const payButton = document.getElementById('pay-button');
+            payButton.disabled = true;
+            payButton.textContent = 'Processing...';
+
+            try {
+                showStatus('Tokenizing payment method...', 'info');
+                
+                // Tokenize the card
+                const result = await card.tokenize();
+                
+                if (result.status === 'OK') {
+                    showStatus('Payment method tokenized. Processing subscription...', 'info');
+                    
+                    // Send to your backend
+                    const response = await fetch(`${API_BASE_URL}/api/subscriptions/subscribe`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${USER_TOKEN}`
+                        },
+                        body: JSON.stringify({
+                            planId: selectedPlan.id,
+                            paymentMethodId: result.token
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        showStatus(`🎉 Subscription created successfully! 
+                                   Plan: ${selectedPlan.name}
+                                   Amount: $${selectedPlan.price}
+                                   Status: Active`, 'success');
+                        
+                        // Hide payment form
+                        document.getElementById('payment-section').style.display = 'none';
+                        
+                        // Reset plan selection
+                        document.querySelectorAll('.plan-card').forEach(card => {
+                            card.classList.remove('selected');
+                        });
+                        
+                    } else {
+                        throw new Error(data.message || 'Subscription creation failed');
+                    }
+                } else {
+                    throw new Error('Payment tokenization failed: ' + (result.errors?.[0]?.detail || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Payment error:', error);
+                showStatus('❌ Payment failed: ' + error.message, 'error');
+            } finally {
+                payButton.disabled = false;
+                payButton.textContent = `Subscribe for $${selectedPlan.price}${selectedPlan.id === 'monthly' ? '/month' : '/year'}`;
+            }
+        });
+
+        // Utility function to show status
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = message.replace(/\n/g, '<br>');
+            statusDiv.className = `status ${type}`;
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeSquare();
+        });
+    </script>
+</body>
+</html>

@@ -31,6 +31,8 @@ const homeRoutes = require('./routes/homeRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const legalRoutes = require('./routes/legalRoutes');
 const disputeRoutes = require('./routes/disputeRoutes');
+const subscriptionRoutes = require('./routes/subscriptionRoutes');
+const cardRoutes = require('./routes/cardRoutes');
 
 app.use('/api/users', userRoutes);
 app.use('/api/firebase-auth', firebaseAuthRoutes);
@@ -43,6 +45,8 @@ app.use('/api/home', homeRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/legal', legalRoutes);
 app.use('/api/disputes', disputeRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/cards', cardRoutes);
 
 // Static file serving for uploads
 app.use('/uploads', express.static('uploads'));

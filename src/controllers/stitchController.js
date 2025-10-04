@@ -36,6 +36,12 @@ exports.getAllStitches = async (req, res) => {
       const materialArray = Array.isArray(materials) ? materials : [materials];
       filter.materials = { $in: materialArray };
     }
+    
+    // Filter by tier only if explicitly requested
+    if (req.query.tier && req.query.tier !== 'all') {
+      filter.tier = req.query.tier;
+    }
+    
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -50,7 +56,7 @@ exports.getAllStitches = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const stitches = await Stitch.find(filter)
-      .select('name description referenceNumber alternativeNames difficulty family usages tags swatches materials hexCodes featuredImage thumbnailImage gallery isActive createdAt updatedAt author')
+      .select('name description referenceNumber alternativeNames difficulty family usages tags swatches materials hexCodes featuredImage thumbnailImage gallery isActive createdAt updatedAt author tier premiumFeatures')
       .populate('family', 'name description')
       .populate('difficulty', 'name level color')
       .populate('usages', 'name description')
@@ -69,15 +75,42 @@ exports.getAllStitches = async (req, res) => {
       stitchesWithProgress = await addUserProgressToStitches(stitches, userId);
     }
 
+    // Add subscription access information to each stitch
+    const stitchesWithSubscriptionInfo = stitchesWithProgress.map(stitch => {
+      const stitchObj = stitch.toObject ? stitch.toObject() : stitch;
+      const userHasPremium = req.userSubscription?.hasPremiumAccess || false;
+      const isFree = stitchObj.tier === 'free' || !stitchObj.tier;
+      
+      // Add clear access indicators
+      stitchObj.is_free = isFree;
+      stitchObj.access_level = isFree ? 'free' : 'premium';
+      stitchObj.user_has_access = isFree || userHasPremium;
+      stitchObj.requires_subscription = !isFree;
+      
+      // If user doesn't have premium access, limit premium content
+      if (!isFree && !userHasPremium) {
+        // Hide premium features and limit description
+        stitchObj.description = stitchObj.description ? 
+          stitchObj.description.substring(0, 100) + '... [Premium content - Subscribe to see more]' : 
+          'Premium content - Subscribe to unlock';
+        stitchObj.premiumFeatures = ['Subscribe to unlock premium features'];
+        stitchObj.gallery = []; // Hide premium images
+        stitchObj.thumbnailImage = stitchObj.featuredImage; // Only show basic image
+      }
+      
+      return stitchObj;
+    });
+
     res.json({
       success: true,
-      data: stitchesWithProgress,
+      data: stitchesWithSubscriptionInfo,
       pagination: {
         currentPage: parseInt(page),
         totalPages: Math.ceil(total / limit),
         totalItems: total,
         itemsPerPage: parseInt(limit)
-      }
+      },
+      userSubscription: req.userSubscription || { status: 'free', hasPremiumAccess: false }
     });
   } catch (error) {
     res.status(500).json({
@@ -141,18 +174,18 @@ exports.searchStitches = async (req, res) => {
   }
 };
 
-// Get stitch by ID
 exports.getStitchById = async (req, res) => {
   try {
-    const { userId } = req.query;
-    
-    const stitch = await Stitch.findOne({ _id: req.params.id, isActive: true })
-      .select('name description referenceNumber alternativeNames difficulty family usages tags swatches materials hexCodes featuredImage thumbnailImage gallery isActive createdAt updatedAt author')
+    const { id } = req.params;
+    const userId = req.user?.id;
+
+    const stitch = await Stitch.findById(id)
       .populate('family', 'name description')
-      .populate('difficulty', 'name level color description')
+      .populate('difficulty', 'name level color')
       .populate('usages', 'name description')
-      .populate('tags', 'name description')
-      .populate('swatches', 'name hexCode description');
+      .populate('tags', 'name')
+      .populate('swatches', 'name hexCode')
+      .populate('materials', 'name type fiber brand color');
 
     if (!stitch) {
       return res.status(404).json({
@@ -161,16 +194,43 @@ exports.getStitchById = async (req, res) => {
       });
     }
 
-    // If userId provided, add user progress data
+    // Add user progress if userId provided
     let stitchWithProgress = stitch;
     if (userId) {
       const stitchesWithProgress = await addUserProgressToStitches([stitch], userId);
       stitchWithProgress = stitchesWithProgress[0];
     }
 
+    // Apply subscription access control
+    const stitchObj = stitchWithProgress.toObject ? stitchWithProgress.toObject() : stitchWithProgress;
+    const userHasPremium = req.userSubscription?.hasPremiumAccess || false;
+    const isFree = stitchObj.tier === 'free' || !stitchObj.tier;
+    
+    // Add clear access indicators
+    stitchObj.is_free = isFree;
+    stitchObj.access_level = isFree ? 'free' : 'premium';
+    stitchObj.user_has_access = isFree || userHasPremium;
+    stitchObj.requires_subscription = !isFree;
+    
+    // If user doesn't have premium access, limit premium content
+    if (!isFree && !userHasPremium) {
+      stitchObj.description = stitchObj.description ? 
+        stitchObj.description.substring(0, 150) + '... [Premium content - Subscribe to see full details]' : 
+        'Premium content - Subscribe to unlock';
+      stitchObj.premiumFeatures = ['Subscribe to unlock premium features'];
+      stitchObj.gallery = stitchObj.gallery ? stitchObj.gallery.slice(0, 1) : []; // Only show first image
+      
+      // Add subscription prompt
+      stitchObj.subscription_prompt = {
+        message: 'This is premium content. Subscribe to unlock full access.',
+        benefits: ['Complete instructions', 'High-quality images', 'Video tutorials', 'Pattern downloads']
+      };
+    }
+
     res.json({
       success: true,
-      data: stitchWithProgress
+      data: stitchObj,
+      userSubscription: req.userSubscription || { status: 'free', hasPremiumAccess: false }
     });
   } catch (error) {
     res.status(500).json({

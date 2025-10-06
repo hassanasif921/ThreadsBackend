@@ -358,20 +358,32 @@ class SquareService {
       console.log(`Attempting to save card for customer: ${customerId}`);
       console.log(`Payment method ID: ${paymentMethodId}`);
       
-      if (!paymentMethodId || (!paymentMethodId.startsWith('cnon:') && !paymentMethodId.startsWith('sq_cnon:'))) {
-        throw new Error('Invalid payment method format');
+      if (!paymentMethodId) {
+        throw new Error('Payment method ID is required');
       }
       
-      // Use the correct Square SDK v2 syntax for creating cards
+      // Validate nonce format - Square nonces can have different prefixes
+      const validPrefixes = ['cnon:', 'sq_cnon:', 'tok_'];
+      const isValidNonce = validPrefixes.some(prefix => paymentMethodId.startsWith(prefix));
+      
+      if (!isValidNonce) {
+        console.log(`Invalid nonce format: ${paymentMethodId}`);
+        console.log(`Expected prefixes: ${validPrefixes.join(', ')}`);
+        throw new Error(`Invalid payment method format. Expected nonce with one of: ${validPrefixes.join(', ')}`);
+      }
+      
+      // Log nonce info for debugging
+      console.log(`✅ Nonce format validation passed`);
+      console.log(`⚠️  Note: Nonces expire quickly and are single-use only`);
+      
+      // Use the correct Square SDK v2 syntax for creating cards from a nonce
+      // The SDK requires a card object even when using sourceId
       const { result } = await this.client.cardsApi.createCard({
-        card: {
-          cardholderName: 'Card Holder',
-          expMonth: BigInt(12),
-          expYear: BigInt(2025),
-          customerId: customerId
-        },
         sourceId: paymentMethodId,
-        idempotencyKey: `card-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        idempotencyKey: `card-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        card: {
+          customerId: customerId
+        }
       });
 
       console.log('Square card creation response received (contains BigInt values)');
@@ -400,6 +412,36 @@ class SquareService {
     } catch (error) {
       console.error('Error creating card via Square API:', error);
       console.error('Full Square error:', error.errors || error.message);
+      
+      // Log the request details for debugging
+      if (error.request) {
+        console.error('Request details:', {
+          method: error.request.method,
+          url: error.request.url,
+          body: error.request.body
+        });
+      }
+      
+      // Log specific error details
+      if (error.errors && Array.isArray(error.errors)) {
+        error.errors.forEach((err, index) => {
+          console.error(`Error ${index + 1}:`, {
+            category: err.category,
+            code: err.code,
+            detail: err.detail,
+            field: err.field
+          });
+          
+          // Provide specific guidance for common nonce issues
+          if (err.field === 'source_id' && err.code === 'INVALID_CARD_DATA') {
+            console.error('🔍 Nonce Troubleshooting:');
+            console.error('   - Nonces expire after a few minutes');
+            console.error('   - Each nonce can only be used once');
+            console.error('   - Ensure nonce is from the correct environment (sandbox/production)');
+            console.error('   - Generate a fresh nonce from the frontend for each card save attempt');
+          }
+        });
+      }
       
       // Fallback: Try the payment-based approach
       console.log('Falling back to payment-based card validation...');

@@ -91,6 +91,13 @@
     <h1>🧪 Square Payment Test</h1>
     
     <div class="test-cards">
+        <h3>⚠️ SETUP REQUIRED</h3>
+        <p><strong>Before testing:</strong> You MUST replace the placeholder Square App ID in the JavaScript code below with your actual App ID from the Square Developer Dashboard.</p>
+        <p><strong>Current status:</strong> <span id="setup-status" style="color: red;">❌ Using placeholder App ID</span></p>
+        <p><strong>Get your App ID:</strong> <a href="https://developer.squareup.com/" target="_blank">Square Developer Dashboard</a> → Your App → Credentials → Sandbox Application ID</p>
+    </div>
+    
+    <div class="test-cards">
         <h3>🧪 Test Card Numbers (Sandbox Only)</h3>
         <p><strong>Success:</strong> 4111 1111 1111 1111 (Visa)</p>
         <p><strong>Declined:</strong> 4000 0000 0000 0002</p>
@@ -131,9 +138,9 @@
     <div id="status"></div>
 
     <script>
-        // Configuration
-        const SQUARE_APP_ID = 'sandbox-sq0idb-REPLACE_WITH_YOUR_APP_ID'; // Get this from Square Developer Dashboard
-        const SQUARE_LOCATION_ID = 'LQR06ZAM1XC8K'; // Your actual location ID
+        // Configuration - IMPORTANT: Replace these with your actual Square credentials
+        const SQUARE_APP_ID = 'sandbox-sq0idp-QwABsi0ObMpnJMPNKsNBnA'; // ⚠️ MUST REPLACE: Get from Square Developer Dashboard
+        const SQUARE_LOCATION_ID = 'LQR06ZAM1XC8K'; // ⚠️ MUST REPLACE: Your actual location ID
         const API_BASE_URL = 'http://localhost:3000';
         const USER_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4YzQ4ZDliMzAyNzFlOTA5YmMxMGEwZSIsImVtYWlsIjoic2FyZXBvYjQzN0BvYmlyYWguY29tIiwiZmlyc3ROYW1lIjoiZGQiLCJsYXN0TmFtZSI6ImNjIiwiaWF0IjoxNzU3NzE0MjA4LCJleHAiOjE3NjAzMDYyMDh9.1abSKT7bjlIKfHp7T-Ede2igJUJcQJdU-39xoQGDtBg';
 
@@ -233,7 +240,12 @@
                         });
                         
                     } else {
-                        throw new Error(data.message || 'Subscription creation failed');
+                        // Check if it's a nonce expiration error
+                        if (data.message && data.message.includes('expired')) {
+                            throw new Error('Payment method expired. Please re-enter your card details.');
+                        } else {
+                            throw new Error(data.message || 'Subscription creation failed');
+                        }
                     }
                 } else {
                     throw new Error('Payment tokenization failed: ' + (result.errors?.[0]?.detail || 'Unknown error'));
@@ -254,8 +266,23 @@
             statusDiv.className = `status ${type}`;
         }
 
+        // Check if setup is complete
+        function checkSetup() {
+            const statusElement = document.getElementById('setup-status');
+            if (SQUARE_APP_ID.includes('REPLACE_WITH_YOUR_APP_ID')) {
+                statusElement.innerHTML = '❌ Using placeholder App ID - nonces will be invalid';
+                statusElement.style.color = 'red';
+                return false;
+            } else {
+                statusElement.innerHTML = '✅ App ID configured';
+                statusElement.style.color = 'green';
+                return true;
+            }
+        }
+
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', () => {
+            checkSetup();
             initializeSquare();
         });
     </script>

@@ -10,7 +10,7 @@ class SquareService {
   constructor() {
     this.client = new Client({
       accessToken: process.env.SQUARE_ACCESS_TOKEN,
-      environment: process.env.NODE_ENV === 'production' ? Environment.Production : Environment.Sandbox
+      environment:  Environment.Sandbox
     });
     
     this.customersApi = this.client.customersApi;

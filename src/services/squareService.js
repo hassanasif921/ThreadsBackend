@@ -1,6 +1,10 @@
 const { Client, Environment } = require('square');
 const Subscription = require('../models/Subscription');
 const User = require('../models/User');
+console.log(process.env.SQUARE_ACCESS_TOKEN);
+console.log(process.env.NODE_ENV);
+console.log(process.env.SQUARE_MONTHLY_PLAN_ID);
+console.log(process.env.SQUARE_YEARLY_PLAN_ID);
 
 class SquareService {
   constructor() {

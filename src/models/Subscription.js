@@ -17,6 +17,10 @@ const subscriptionSchema = new mongoose.Schema({
     unique: true,
     sparse: true
   },
+  squarePaymentId: {
+    type: String,
+    sparse: true
+  },
   planType: {
     type: String,
     enum: ['free', 'premium_monthly', 'premium_yearly'],
@@ -36,6 +40,10 @@ const subscriptionSchema = new mongoose.Schema({
   cancelAtPeriodEnd: {
     type: Boolean,
     default: false
+  },
+  autoRenew: {
+    type: Boolean,
+    default: true
   },
   trialStart: {
     type: Date
@@ -85,6 +93,7 @@ const subscriptionSchema = new mongoose.Schema({
 subscriptionSchema.index({ userId: 1 });
 subscriptionSchema.index({ squareCustomerId: 1 });
 subscriptionSchema.index({ squareSubscriptionId: 1 });
+subscriptionSchema.index({ squarePaymentId: 1 });
 subscriptionSchema.index({ status: 1 });
 subscriptionSchema.index({ planType: 1 });
 subscriptionSchema.index({ currentPeriodEnd: 1 });

@@ -191,38 +191,39 @@ class SquareService {
     }
   }
 
-  // Cancel subscription
+  // Cancel subscription (payment-based approach)
   async cancelSubscription(userId, cancelAtPeriodEnd = true) {
     try {
       const subscription = await Subscription.findOne({ userId });
-      if (!subscription || !subscription.squareSubscriptionId) {
+      console.log('Found subscription for user:', userId, subscription);
+      
+      if (!subscription) {
         throw new Error('Subscription not found');
       }
 
+      // Since we're using a payment-based approach (not recurring Square subscriptions),
+      // we just need to update our database records
       if (cancelAtPeriodEnd) {
-        // Cancel at period end
-        const { result } = await this.subscriptionsApi.updateSubscription(
-          subscription.squareSubscriptionId,
-          {
-            subscription: {
-              version: subscription.version,
-              canceledDate: subscription.currentPeriodEnd.toISOString().split('T')[0]
-            }
-          }
-        );
-        
+        // Cancel at period end - subscription remains active until current period ends
         subscription.cancelAtPeriodEnd = true;
+        subscription.autoRenew = false; // Prevent future renewals
         await subscription.save();
         
-        return result.subscription;
+        console.log(`Subscription will be cancelled at period end: ${subscription.currentPeriodEnd}`);
+        
+        return {
+          id: subscription._id,
+          status: 'ACTIVE', // Still active until period end
+          cancelAtPeriodEnd: true,
+          currentPeriodEnd: subscription.currentPeriodEnd,
+          message: 'Subscription will be cancelled at the end of the current period'
+        };
       } else {
         // Cancel immediately
-        const { result } = await this.subscriptionsApi.cancelSubscription(
-          subscription.squareSubscriptionId
-        );
-        
         subscription.status = 'cancelled';
         subscription.currentPeriodEnd = new Date();
+        subscription.cancelAtPeriodEnd = false;
+        subscription.autoRenew = false;
         await subscription.save();
 
         // Update user status
@@ -231,7 +232,14 @@ class SquareService {
           premiumAccessUntil: new Date()
         });
         
-        return result.subscription;
+        console.log('Subscription cancelled immediately');
+        
+        return {
+          id: subscription._id,
+          status: 'CANCELLED',
+          cancelledAt: new Date(),
+          message: 'Subscription cancelled immediately'
+        };
       }
     } catch (error) {
       console.error('Error canceling subscription:', error);

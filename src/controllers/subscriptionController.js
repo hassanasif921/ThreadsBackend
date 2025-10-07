@@ -186,7 +186,8 @@ exports.updateSubscription = async (req, res) => {
 // Cancel subscription
 exports.cancelSubscription = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.query.user_id;
+    console.log(userId)
     const { cancelAtPeriodEnd = true } = req.body;
 
     const result = await squareService.cancelSubscription(userId, cancelAtPeriodEnd);

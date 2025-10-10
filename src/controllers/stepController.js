@@ -48,8 +48,12 @@ exports.getStepsByStitch = async (req, res) => {
 
     // If userId provided, add user's active step information
     let stepsWithProgress = steps;
+    let isStitchCompleted = false;
+    
     if (userId) {
-      stepsWithProgress = await addActiveStepToSteps(steps, userId, stitchId, userHasPremium, stitchIsFree);
+      const result = await addActiveStepToSteps(steps, userId, stitchId, userHasPremium, stitchIsFree);
+      stepsWithProgress = result.stepsWithProgress;
+      isStitchCompleted = result.isStitchCompleted;
     } else {
       // Add access control info even without userId
       stepsWithProgress = steps.map(step => {
@@ -67,7 +71,8 @@ exports.getStepsByStitch = async (req, res) => {
         name: stitch.name,
         tier: stitch.tier,
         is_free: stitchIsFree,
-        user_has_access: userHasAccess
+        user_has_access: userHasAccess,
+        isCompleted: isStitchCompleted
       },
       userSubscription: req.userSubscription || { status: 'free', hasPremiumAccess: false }
     });
@@ -205,10 +210,18 @@ async function addActiveStepToSteps(steps, userId, stitchId, userHasPremium, sti
     userId: userId,
     stitch: stitchId,
     isActive: true
-  });
+  }).populate('completedSteps.step', 'stepNumber');
   
-  const currentStep = userProgress ? (userProgress.completedSteps || 0) : 0;
-  const nextActiveStep = currentStep + 1; // Next step to work on
+  // Get completed step numbers from the user progress
+  const completedStepNumbers = userProgress && userProgress.completedSteps ? 
+    userProgress.completedSteps.map(cs => cs.step ? cs.step.stepNumber : 0) : [];
+  
+  const maxCompletedStep = completedStepNumbers.length > 0 ? Math.max(...completedStepNumbers) : 0;
+  const nextActiveStep = maxCompletedStep + 1; // Next step to work on
+  
+  // Find the highest step number in this stitch to determine if stitch is completed
+  const maxStepNumber = Math.max(...steps.map(step => step.stepNumber));
+  const isStitchCompleted = maxCompletedStep >= maxStepNumber;
   
   for (const step of steps) {
     const stepObj = step.toObject();
@@ -219,7 +232,7 @@ async function addActiveStepToSteps(steps, userId, stitchId, userHasPremium, sti
     
     // Add step status information
     stepObj.stepStatus = {
-      isCompleted: step.stepNumber <= currentStep,
+      isCompleted: completedStepNumbers.includes(step.stepNumber),
       isActive: step.stepNumber === nextActiveStep,
       isLocked: step.stepNumber > nextActiveStep
     };
@@ -237,7 +250,7 @@ async function addActiveStepToSteps(steps, userId, stitchId, userHasPremium, sti
     stepsWithProgress.push(stepObj);
   }
   
-  return stepsWithProgress;
+  return { stepsWithProgress, isStitchCompleted };
 }
 
 // Get individual step by ID
@@ -303,13 +316,17 @@ exports.getStepById = async (req, res) => {
         userId: userId,
         stitch: stitchId,
         isActive: true
-      });
+      }).populate('completedSteps.step', 'stepNumber');
       
-      const currentStep = userProgress ? (userProgress.completedSteps || 0) : 0;
-      const nextActiveStep = currentStep + 1;
+      // Get completed step numbers from the user progress
+      const completedStepNumbers = userProgress && userProgress.completedSteps ? 
+        userProgress.completedSteps.map(cs => cs.step ? cs.step.stepNumber : 0) : [];
+      
+      const maxCompletedStep = completedStepNumbers.length > 0 ? Math.max(...completedStepNumbers) : 0;
+      const nextActiveStep = maxCompletedStep + 1;
       
       stepObj.stepStatus = {
-        isCompleted: step.stepNumber <= currentStep,
+        isCompleted: completedStepNumbers.includes(step.stepNumber),
         isActive: step.stepNumber === nextActiveStep,
         isLocked: step.stepNumber > nextActiveStep
       };

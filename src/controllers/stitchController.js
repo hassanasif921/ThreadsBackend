@@ -152,7 +152,9 @@ exports.searchStitches = async (req, res) => {
       .populate('family', 'name')
       .populate('difficulty', 'name level')
       .populate('materials', 'name type fiber brand')
-      .select('name description referenceNumber images materials author')
+      .populate('tags', 'name')
+      .populate('usages', 'name')
+      .select('name description referenceNumber images materials author tags usages')
       .limit(parseInt(limit));
 
     // If userId provided, add user progress data

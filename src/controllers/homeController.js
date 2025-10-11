@@ -22,7 +22,9 @@ async function getFeaturedStitches(req, res) {
       .populate('family', 'name')
       .populate('difficulty', 'name level color')
       .populate('materials', 'name type fiber brand')
-      .select('name description referenceNumber featuredImage images difficulty family materials')
+      .populate('tags', 'name')
+      .populate('usages', 'name')
+      .select('name description referenceNumber featuredImage images difficulty family materials tags usages')
       .sort({ createdAt: -1 }) // Most recent first
       .limit(parseInt(limit));
 
@@ -68,7 +70,9 @@ async function getFavoriteStitches(req, res) {
         populate: [
           { path: 'family', select: 'name' },
           { path: 'difficulty', select: 'name level color' },
-          { path: 'materials', select: 'name type fiber brand' }
+          { path: 'materials', select: 'name type fiber brand' },
+          { path: 'tags', select: 'name' },
+          { path: 'usages', select: 'name' }
         ]
       })
       .sort({ updatedAt: -1 })
@@ -118,11 +122,13 @@ async function getContinueLearning(req, res) {
       populate: [
         { path: 'family', select: 'name' },
         { path: 'difficulty', select: 'name level color' },
-        { path: 'materials', select: 'name type fiber brand' }
+        { path: 'materials', select: 'name type fiber brand' },
+        { path: 'tags', select: 'name' },
+        { path: 'usages', select: 'name' }
       ]
     };
 
-    // Add category filter to stitch match if provided (and not 'all')
+      // Add category filter to stitch match if provided (and not 'all')
     if (category && category.toLowerCase() !== 'all') {
       populateQuery.match.family = category;
     }
@@ -192,7 +198,9 @@ async function getHomePageData(req, res) {
       .populate('family', 'name')
       .populate('difficulty', 'name level color')
       .populate('materials', 'name type fiber brand')
-      .select('name description referenceNumber featuredImage images difficulty family materials')
+      .populate('tags', 'name')
+      .populate('usages', 'name')
+      .select('name description referenceNumber featuredImage images difficulty family materials tags usages')
       .sort({ createdAt: -1 })
       .limit(featuredLimit);
 

@@ -24,17 +24,29 @@ exports.getAllStitches = async (req, res) => {
     const filter = { isActive: true };
 
     // Apply filters
-    if (family) filter.family = family;
-    if (category && category.toLowerCase() !== 'all') filter.family = category;
-    if (difficulty) filter.difficulty = difficulty;
-    if (usage) filter.usages = { $in: Array.isArray(usage) ? usage : [usage] };
+    if (family && typeof family === 'string' && family.trim() !== '') filter.family = family;
+    if (category && typeof category === 'string' && category.toLowerCase() !== 'all') filter.family = category;
+    if (difficulty && typeof difficulty === 'string' && difficulty.trim() !== '') filter.difficulty = difficulty;
+    if (usage) {
+      const usageArray = Array.isArray(usage) ? usage : [usage];
+      const validUsages = usageArray.filter(u => u && u.trim() !== '');
+      if (validUsages.length > 0) {
+        filter.usages = { $in: validUsages };
+      }
+    }
     if (tags) {
       const tagArray = Array.isArray(tags) ? tags : [tags];
-      filter.tags = { $in: tagArray };
+      const validTags = tagArray.filter(tag => tag && tag.trim() !== '');
+      if (validTags.length > 0) {
+        filter.tags = { $in: validTags };
+      }
     }
     if (materials) {
       const materialArray = Array.isArray(materials) ? materials : [materials];
-      filter.materials = { $in: materialArray };
+      const validMaterials = materialArray.filter(material => material && material.trim() !== '');
+      if (validMaterials.length > 0) {
+        filter.materials = { $in: validMaterials };
+      }
     }
     
     // Filter by tier only if explicitly requested
@@ -44,9 +56,9 @@ exports.getAllStitches = async (req, res) => {
     
     if (search) {
       filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { alternativeNames: { $regex: search, $options: 'i' } }
+        { name: { $regex: `^${search}`, $options: 'i' } },
+        { description: { $regex: `^${search}`, $options: 'i' } },
+        { alternativeNames: { $regex: `^${search}`, $options: 'i' } }
       ];
     }
 
@@ -136,16 +148,19 @@ exports.searchStitches = async (req, res) => {
     const filter = {
       isActive: true,
       $or: [
-        { name: { $regex: q, $options: 'i' } },
-        { description: { $regex: q, $options: 'i' } },
-        { alternativeNames: { $regex: q, $options: 'i' } }
+        { name: { $regex: `^${q}`, $options: 'i' } },
+        { description: { $regex: `^${q}`, $options: 'i' } },
+        { alternativeNames: { $regex: `^${q}`, $options: 'i' } }
       ]
     };
 
     // Add material filter if provided
     if (materials) {
       const materialArray = Array.isArray(materials) ? materials : [materials];
-      filter.materials = { $in: materialArray };
+      const validMaterials = materialArray.filter(material => material && material.trim() !== '');
+      if (validMaterials.length > 0) {
+        filter.materials = { $in: validMaterials };
+      }
     }
 
     const stitches = await Stitch.find(filter)

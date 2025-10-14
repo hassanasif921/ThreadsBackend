@@ -193,15 +193,37 @@ await fetch(`/api/stitches/${stitchId}/progress/${userId}`, {
 });
 ```
 
-### Adding to Favorites
+### Managing Favorites
 
+#### Add to Favorites
 ```javascript
-await fetch(`/api/stitches/${stitchId}/favorite/${userId}`, {
+await fetch(`/api/stitches/${stitchId}/favorite`, {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer YOUR_JWT_TOKEN'
   }
 });
+```
+
+#### Remove from Favorites
+```javascript
+await fetch(`/api/stitches/${stitchId}/favorite`, {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+});
+```
+
+#### Get All Favorites
+```javascript
+const favoritesResponse = await fetch('/api/stitches/favorites?page=1&limit=20', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+});
+const favorites = await favoritesResponse.json();
 ```
 
 ### Getting User Statistics

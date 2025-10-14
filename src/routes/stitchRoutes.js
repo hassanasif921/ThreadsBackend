@@ -11,6 +11,9 @@ const { upload } = require('../middleware/uploadMiddleware');
 router.get('/', checkSubscriptionStatus, filterPremiumContent, stitchController.getAllStitches);
 router.get('/search', checkSubscriptionStatus, filterPremiumContent, stitchController.searchStitches);
 
+// Favorites route (must come before /:id route to avoid conflicts)
+router.get('/favorites', authMiddleware, checkSubscriptionStatus, userProgressController.getFavorites);
+
 // Protected stitch routes (require authentication)
 router.get('/:id', authMiddleware, checkSubscriptionStatus, stitchController.getStitchById);
 router.get('/:id/steps', authMiddleware, checkSubscriptionStatus, stepController.getStepsByStitch);
@@ -61,7 +64,12 @@ router.delete('/:stitchId/steps/:stepId', authMiddleware, stepController.deleteS
 // User progress routes (require authentication)
 router.get('/:id/progress', authMiddleware, userProgressController.getUserProgress);
 router.post('/:id/progress', authMiddleware, userProgressController.updateUserProgress);
-router.post('/:id/favorite', authMiddleware, userProgressController.toggleFavorite);
+
+// Favorite routes (require authentication)
+router.post('/:id/favorite', authMiddleware, userProgressController.addToFavorites);
+router.delete('/:id/favorite', authMiddleware, userProgressController.removeFromFavorites);
+
+// Step completion routes (require authentication)
 router.post('/:id/steps/:stepId/complete', authMiddleware, userProgressController.markStepComplete);
 router.delete('/:id/steps/:stepId/complete', authMiddleware, userProgressController.unmarkStepComplete);
 

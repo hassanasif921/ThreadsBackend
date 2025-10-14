@@ -395,3 +395,170 @@ exports.getProgressStats = async (req, res) => {
     });
   }
 };
+
+// Add stitch to favorites
+exports.addToFavorites = async (req, res) => {
+  try {
+    const { id: stitchId } = req.params;
+    const userId = req.user.uid || req.user.id;
+
+    // Verify stitch exists
+    const stitch = await Stitch.findOne({ _id: stitchId, isActive: true });
+    if (!stitch) {
+      return res.status(404).json({
+        success: false,
+        message: 'Stitch not found'
+      });
+    }
+
+    // Find existing progress or create new one
+    let progress = await UserProgress.findOne({ userId, stitch: stitchId });
+    
+    if (!progress) {
+      progress = new UserProgress({
+        userId,
+        stitch: stitchId,
+        isFavorite: true
+      });
+    } else {
+      if (progress.isFavorite) {
+        return res.status(400).json({
+          success: false,
+          message: 'Stitch is already in favorites'
+        });
+      }
+      progress.isFavorite = true;
+    }
+
+    await progress.save();
+
+    res.json({
+      success: true,
+      data: { isFavorite: true },
+      message: 'Added to favorites'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error adding to favorites',
+      error: error.message
+    });
+  }
+};
+
+// Remove stitch from favorites
+exports.removeFromFavorites = async (req, res) => {
+  try {
+    const { id: stitchId } = req.params;
+    const userId = req.user.uid || req.user.id;
+
+    // Find existing progress
+    const progress = await UserProgress.findOne({ userId, stitch: stitchId });
+    
+    if (!progress || !progress.isFavorite) {
+      return res.status(400).json({
+        success: false,
+        message: 'Stitch is not in favorites'
+      });
+    }
+
+    progress.isFavorite = false;
+    await progress.save();
+
+    res.json({
+      success: true,
+      data: { isFavorite: false },
+      message: 'Removed from favorites'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error removing from favorites',
+      error: error.message
+    });
+  }
+};
+
+// Get all user's favorite stitches
+exports.getFavorites = async (req, res) => {
+  try {
+    const userId = req.user.uid || req.user.id;
+    const { page = 1, limit = 20 } = req.query;
+
+    const skip = (page - 1) * limit;
+
+    // Find all favorite stitches for the user
+    const favoriteProgress = await UserProgress.find({
+      userId,
+      isFavorite: true,
+      isActive: true
+    })
+    .populate({
+      path: 'stitch',
+      match: { isActive: true },
+      select: 'name description referenceNumber difficulty family usages tags materials featuredImage thumbnailImage author tier premiumFeatures',
+      populate: [
+        { path: 'family', select: 'name description' },
+        { path: 'difficulty', select: 'name level color' },
+        { path: 'usages', select: 'name description' },
+        { path: 'tags', select: 'name' },
+        { path: 'materials', select: 'name type fiber brand color' }
+      ]
+    })
+    .skip(skip)
+    .limit(parseInt(limit))
+    .sort({ updatedAt: -1 });
+
+    // Filter out any null stitches (in case stitch was deleted)
+    const validFavorites = favoriteProgress.filter(progress => progress.stitch);
+
+    // Apply subscription access control to each stitch
+    const favoritesWithSubscriptionInfo = validFavorites.map(progress => {
+      const stitchObj = progress.stitch.toObject ? progress.stitch.toObject() : progress.stitch;
+      const userHasPremium = req.userSubscription?.hasPremiumAccess || false;
+      const isFree = stitchObj.tier === 'free' || !stitchObj.tier;
+      
+      // Add clear access indicators
+      stitchObj.is_free = isFree;
+      stitchObj.access_level = isFree ? 'free' : 'premium';
+      stitchObj.user_has_access = isFree || userHasPremium;
+      stitchObj.requires_subscription = !isFree;
+      stitchObj.favorited_at = progress.updatedAt;
+      
+      // If user doesn't have premium access, limit premium content
+      if (!isFree && !userHasPremium) {
+        stitchObj.description = stitchObj.description ? 
+          stitchObj.description.substring(0, 100) + '... [Premium content - Subscribe to see more]' : 
+          'Premium content - Subscribe to unlock';
+        stitchObj.premiumFeatures = ['Subscribe to unlock premium features'];
+      }
+      
+      return stitchObj;
+    });
+
+    // Get total count for pagination
+    const totalFavorites = await UserProgress.countDocuments({
+      userId,
+      isFavorite: true,
+      isActive: true
+    });
+
+    res.json({
+      success: true,
+      data: favoritesWithSubscriptionInfo,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalFavorites / limit),
+        totalItems: totalFavorites,
+        itemsPerPage: parseInt(limit)
+      },
+      userSubscription: req.userSubscription || { status: 'free', hasPremiumAccess: false }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching favorites',
+      error: error.message
+    });
+  }
+};

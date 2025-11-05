@@ -54,10 +54,9 @@ exports.getAllStitches = async (req, res) => {
       filter.tier = req.query.tier;
     }
     
-    if (search) {
+    if (search && search.trim() !== '') {
       filter.$or = [
         { name: { $regex: `^${search}`, $options: 'i' } },
-        { description: { $regex: `^${search}`, $options: 'i' } },
         { alternativeNames: { $regex: `^${search}`, $options: 'i' } }
       ];
     }
